@@ -21,13 +21,13 @@ El sistema permite la gestión de reservas de canchas por disciplina (Tenis, Fú
 
 ## Stack tecnológico
 
-| Capa        | Tecnología                       |
-|-------------|----------------------------------|
-| Frontend    | Next.js, TypeScript              |
-| Backend     | NestJS, TypeScript               |
-| Base de datos | PostgreSQL (Supabase)          |
-| Especificación | OpenSpec                      |
-| CI/CD       | GitHub Actions                    |
+| Capa           | Tecnología            |
+|----------------|-----------------------|
+| Frontend       | Next.js, TypeScript   |
+| Backend        | NestJS, TypeScript    |
+| Base de datos  | PostgreSQL (Supabase) |
+| Especificación | OpenSpec              |
+| CI/CD          | GitHub Actions        |
 
 ## Arquitectura
 
@@ -35,7 +35,7 @@ Enfoque **API-First**: el contrato de la API se define desde el inicio mediante 
 
 ### Estructura del proyecto
 
-```
+```bash
 Ing Software_grupo/
 ├── backend/                    # API y lógica de negocio (NestJS)
 ├── frontend/                   # Interfaz de usuario (Next.js)
@@ -80,16 +80,16 @@ Pendiente de configuración (Fase 3). Se desplegará un workflow en `.github/wor
 
 ```bash
 cd backend
-npm install
-npm run start:dev
+pnpm install
+pnpm run start:dev
 ```
 
 ### Frontend (Next.js)
 
 ```bash
 cd frontend
-npm install
-npm run dev
+pnpm install
+pnpm run dev
 ```
 
 ### Base de datos
