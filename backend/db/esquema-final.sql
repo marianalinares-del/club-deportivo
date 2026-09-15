@@ -1,560 +1,1968 @@
 -- =====================================================================
--- Club Deportivo — Sistema de Reservas
--- ESQUEMA FINAL UNIFICADO (PostgreSQL 14+ / Supabase)
+-- CLUB DEPORTIVO — SISTEMA DE RESERVAS
+-- ESQUEMA v3 — PostgreSQL 14+ / Supabase
 --
--- Fuente de verdad: docs/modelo-datos.md
--- Este script combina y corrige backend/db/schema.sql (v1, SERIAL) y
--- backend/db/schema-guada.sql (v2, UUID + triggers), resolviendo las
--- brechas detectadas en la auditoría (ver detalle en la respuesta del
--- asistente). Es idempotente: puede ejecutarse repetidas veces.
+-- Principios:
+--   1. PERSONAS es la entidad raíz.
+--   2. CONTACTOS_PERSONA contiene todos los emails/teléfonos.
+--   3. DIRECCIONES_PERSONA contiene las direcciones.
+--   4. USUARIOS es un subtipo 0..1 de PERSONAS.
+--   5. USUARIOS NO duplica email, teléfono, nombre, DNI, etc.
+--   6. Una persona puede tener múltiples emails/teléfonos.
+--   7. Una persona puede ser invitado y posteriormente socio sin duplicar su identidad.
+--   8. Las reservas referencian PERSONAS.
+--   9. La disponibilidad se garantiza mediante índice único parcial.
+--  10. El stock de equipamiento se controla transaccionalmente.
+--  11. La auditoría es append-only.
+--  12. Las bajas lógicas conservan historial.
+-- ====================================================================================
+
+
+-- ====================================================================================
+-- 0. EXTENSIONES
 -- =====================================================================
 
-CREATE EXTENSION IF NOT EXISTS pgcrypto; -- gen_random_uuid()
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 
 -- =====================================================================
--- 0. LIMPIEZA (orden inverso a las dependencias)
+-- 1. PERSONAS
 -- =====================================================================
-DROP VIEW IF EXISTS v_reservas_detalle CASCADE;
 
-DROP TABLE IF EXISTS registros_auditoria           CASCADE;
-DROP TABLE IF EXISTS detalle_alquiler_equipamiento CASCADE;
-DROP TABLE IF EXISTS reservas                       CASCADE;
-DROP TABLE IF EXISTS equipamientos                  CASCADE;
-DROP TABLE IF EXISTS franjas_horarias               CASCADE;
-DROP TABLE IF EXISTS canchas                        CASCADE;
-DROP TABLE IF EXISTS no_socios                       CASCADE;
-DROP TABLE IF EXISTS solicitudes_permiso            CASCADE;
-DROP TABLE IF EXISTS usuarios                       CASCADE;
-DROP TABLE IF EXISTS disciplinas                    CASCADE;
-
-DROP FUNCTION IF EXISTS fn_check_gestor_rol()               CASCADE;
-DROP FUNCTION IF EXISTS fn_check_max_reservas_activas()      CASCADE;
-DROP FUNCTION IF EXISTS fn_set_fecha_devolucion_estimada()   CASCADE;
-DROP FUNCTION IF EXISTS fn_validar_alquiler_equipamiento()   CASCADE;
-DROP FUNCTION IF EXISTS fn_gestionar_devolucion_equipamiento() CASCADE;
-DROP FUNCTION IF EXISTS fn_cancha_a_mantenimiento()          CASCADE;
-DROP FUNCTION IF EXISTS fn_auditoria_reserva()               CASCADE;
-DROP FUNCTION IF EXISTS fn_marcar_no_devueltos()             CASCADE;
-
--- =====================================================================
--- 1. DISCIPLINAS
--- =====================================================================
-CREATE TABLE disciplinas (
-    id_disciplina UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    nombre        TEXT NOT NULL UNIQUE,           -- Fútbol, Tenis, Pádel (RF01)
-    descripcion   TEXT,
-    creado_en     TIMESTAMPTZ NOT NULL DEFAULT now()
+CREATE TABLE personas (
+    id_persona UUID PRIMARY KEY
+        DEFAULT gen_random_uuid(),
+    dni TEXT NOT NULL,
+    cuil TEXT,
+    nombre TEXT NOT NULL,
+    apellido TEXT NOT NULL,
+    fecha_nacimiento DATE,
+    creado_en TIMESTAMPTZ NOT NULL DEFAULT now(),
+    actualizado_en TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT uq_personas_dni UNIQUE (dni),
+    CONSTRAINT uq_personas_cuil UNIQUE (cuil),
+    CONSTRAINT ck_personas_dni CHECK (length(trim(dni)) > 0),
+    CONSTRAINT ck_personas_cuil
+        CHECK (
+            cuil IS NULL
+            OR length(trim(cuil)) > 0
+        )
 );
-COMMENT ON TABLE disciplinas IS 'Catálogo de disciplinas deportivas (RF01).';
+
+COMMENT ON TABLE personas IS
+'Entidad raíz de identidad. Toda persona que interactúa con el club existe aquí.';
+
+COMMENT ON COLUMN personas.dni IS
+'DNI de la persona. Identificador único dentro del sistema.';
+
+COMMENT ON COLUMN personas.cuil IS
+'CUIL/CUIT de la persona cuando corresponda.';
+
+
+-- Búsquedas frecuentes por apellido/nombre.
+CREATE INDEX idx_personas_apellido_nombre
+    ON personas (apellido, nombre);
+
 
 -- =====================================================================
--- 2. USUARIOS (Socios, Gerentes, Administradores)
+-- 2. CONTACTOS DE PERSONA
 -- =====================================================================
-CREATE TABLE usuarios (
-    id_usuario                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    rol                          TEXT NOT NULL DEFAULT 'SOCIO'
-        CHECK (rol IN ('SOCIO', 'GERENTE', 'ADMINISTRADOR')),
-    estado                       TEXT NOT NULL DEFAULT 'PENDIENTE'
-        CHECK (estado IN ('PENDIENTE', 'ACTIVO', 'SUSPENDIDO')),
-    -- Datos fijos, editables solo por Gerente/Admin (RF19.2)
-    dni                          TEXT NOT NULL UNIQUE,
-    nombre                       TEXT NOT NULL,
-    apellido                     TEXT NOT NULL,
-    fecha_nacimiento             DATE NOT NULL,
-    -- Datos de contacto, editables por el propio socio (RF19.1)
-    email                        TEXT NOT NULL UNIQUE,
-    telefono                     TEXT NOT NULL,
-    domicilio                    TEXT,
-    -- Autenticación (si no se delega 100% en Supabase Auth)
-    password_hash                TEXT,
-    incumplimientos_equipamiento INT NOT NULL DEFAULT 0 CHECK (incumplimientos_equipamiento >= 0), -- RF13.4
-    creado_en                    TIMESTAMPTZ NOT NULL DEFAULT now(),
-    actualizado_en               TIMESTAMPTZ NOT NULL DEFAULT now()
+
+CREATE TABLE contactos_persona (
+    id_contacto UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id_persona UUID NOT NULL REFERENCES personas(id_persona) ON DELETE CASCADE,
+    tipo_contacto TEXT NOT NULL,
+    valor_contacto TEXT NOT NULL,
+    estado TEXT NOT NULL DEFAULT 'ACTIVO',
+    inactivated_at TIMESTAMPTZ,
+    creado_en TIMESTAMPTZ NOT NULL DEFAULT now(),
+    actualizado_en TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT ck_contacto_tipo
+        CHECK (
+            tipo_contacto IN (
+                'EMAIL',
+                'TELEFONO'
+            )
+        ),
+    CONSTRAINT ck_contacto_estado
+        CHECK (
+            estado IN (
+                'ACTIVO',
+                'INACTIVO'
+            )
+        ),
+    CONSTRAINT ck_contacto_inactivated_at
+        CHECK (
+            (estado = 'ACTIVO' AND inactivated_at IS NULL)
+            OR
+            (estado = 'INACTIVO' AND inactivated_at IS NOT NULL)
+        ),
+    CONSTRAINT ck_contacto_valor
+        CHECK (length(trim(valor_contacto)) > 0)
 );
-COMMENT ON TABLE usuarios IS 'Socios, Gerentes y Administradores (RF06, RF11, RF17, RF19).';
-COMMENT ON COLUMN usuarios.estado IS 'PENDIENTE: no reserva ni alquila (RF17.1). SUSPENDIDO: no crea reservas nuevas (RF17.2).';
-COMMENT ON COLUMN usuarios.incumplimientos_equipamiento IS 'Contador de no-devoluciones/tardías; 3 incumplimientos suspenden la cuenta (RF13.4).';
 
--- =====================================================================
--- 3. SOLICITUDES DE PERMISO (1:1 con el usuario que eventualmente generan)
--- =====================================================================
-CREATE TABLE solicitudes_permiso (
-    id_solicitud        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    nombre               TEXT NOT NULL,
-    apellido             TEXT NOT NULL,
-    email                TEXT NOT NULL UNIQUE,
-    telefono             TEXT NOT NULL,
-    dni                  TEXT NOT NULL,
-    origen               TEXT NOT NULL
-        CHECK (origen IN ('AUTOREGISTRO', 'GESTIONADA_POR_PERSONAL')),
-    estado               TEXT NOT NULL DEFAULT 'PENDIENTE'
-        CHECK (estado IN ('PENDIENTE', 'APROBADA', 'RECHAZADA')),
-    id_gestor_aprobador  UUID REFERENCES usuarios(id_usuario),
-    id_usuario_generado  UUID UNIQUE REFERENCES usuarios(id_usuario), -- 1:1 con el usuario creado
-    fecha_solicitud       TIMESTAMPTZ NOT NULL DEFAULT now(),
-    fecha_resolucion      TIMESTAMPTZ,
-    -- Coherencia: solo hay usuario generado si la solicitud fue aprobada
-    CONSTRAINT ck_solicitud_usuario_si_aprobada CHECK (
-        (estado = 'APROBADA' AND id_usuario_generado IS NOT NULL)
-        OR (estado <> 'APROBADA' AND id_usuario_generado IS NULL)
+COMMENT ON TABLE contactos_persona IS
+'Emails y teléfonos de una persona. Una persona puede tener múltiples contactos.';
+
+
+-- No se permiten dos contactos activos idénticos
+-- para la misma persona.
+CREATE UNIQUE INDEX uq_contacto_persona_activo
+    ON contactos_persona (
+        id_persona,
+        tipo_contacto,
+        valor_contacto
     )
-);
-COMMENT ON TABLE solicitudes_permiso IS 'Alta de socio por autoregistro o gestionada por personal (RF11).';
+    WHERE estado = 'ACTIVO';
 
--- Un CHECK no puede consultar otra tabla: se valida por trigger que el
--- aprobador sea Gerente o Administrador.
-CREATE OR REPLACE FUNCTION fn_check_gestor_rol()
-RETURNS TRIGGER AS $$
+
+-- Un email activo no puede pertenecer simultáneamente
+-- a dos personas.
+CREATE UNIQUE INDEX uq_email_activo_global
+    ON contactos_persona (lower(trim(valor_contacto)))
+    WHERE tipo_contacto = 'EMAIL'
+      AND estado = 'ACTIVO';
+
+
+-- Búsqueda rápida de contactos de una persona.
+CREATE INDEX idx_contactos_persona
+    ON contactos_persona (id_persona)
+    WHERE estado = 'ACTIVO';
+
+
+-- =====================================================================
+-- 3. DIRECCIONES
+-- =====================================================================
+
+CREATE TABLE direcciones_persona (
+    id_direccion UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id_persona UUID NOT NULL REFERENCES personas(id_persona) ON DELETE CASCADE,
+    tipo_direccion TEXT NOT NULL,
+    calle TEXT,
+    numero TEXT,
+    piso TEXT,
+    departamento TEXT,
+    codigo_postal TEXT,
+    localidad TEXT,
+    provincia TEXT,
+    pais TEXT NOT NULL DEFAULT 'Argentina',
+    estado TEXT NOT NULL DEFAULT 'ACTIVO',
+    inactivated_at TIMESTAMPTZ,
+    creado_en TIMESTAMPTZ NOT NULL DEFAULT now(),
+    actualizado_en TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT ck_direccion_tipo
+        CHECK (
+            tipo_direccion IN (
+                'PERSONAL',
+                'LABORAL'
+            )
+        ),
+    CONSTRAINT ck_direccion_estado
+        CHECK (
+            estado IN (
+                'ACTIVO',
+                'INACTIVO'
+            )
+        ),
+    CONSTRAINT ck_direccion_inactivated_at
+        CHECK (
+            (estado = 'ACTIVO' AND inactivated_at IS NULL)
+            OR
+            (estado = 'INACTIVO' AND inactivated_at IS NOT NULL)
+        )
+);
+
+COMMENT ON TABLE direcciones_persona IS
+'Direcciones físicas asociadas a una persona.';
+
+CREATE INDEX idx_direcciones_persona
+    ON direcciones_persona (id_persona)
+    WHERE estado = 'ACTIVO';
+
+-- =====================================================================
+-- 4. FUNCIÓN GENÉRICA PARA updated_at
+-- =====================================================================
+
+CREATE OR REPLACE FUNCTION fn_update_actualizado_en()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
 BEGIN
-    IF NEW.id_gestor_aprobador IS NOT NULL THEN
-        IF NOT EXISTS (
-            SELECT 1 FROM usuarios
-            WHERE id_usuario = NEW.id_gestor_aprobador
-              AND rol IN ('GERENTE', 'ADMINISTRADOR')
-        ) THEN
-            RAISE EXCEPTION 'id_gestor_aprobador debe pertenecer a un Gerente o Administrador';
-        END IF;
-    END IF;
+    NEW.actualizado_en = now();
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_check_gestor_rol
-    BEFORE INSERT OR UPDATE ON solicitudes_permiso
-    FOR EACH ROW EXECUTE FUNCTION fn_check_gestor_rol();
+$$;
 
 -- =====================================================================
--- 4. NO SOCIOS (invitados)
+-- 5. FUNCIÓN PARA inactivated_at
 -- =====================================================================
-CREATE TABLE no_socios (
-    id_no_socio UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    dni         TEXT UNIQUE,           -- evita duplicar el mismo invitado
-    nombre      TEXT NOT NULL,
-    apellido    TEXT,
-    telefono    TEXT NOT NULL,
-    creado_en   TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-COMMENT ON TABLE no_socios IS 'Invitados con reserva cargada por Gerencia (RF21).';
 
--- =====================================================================
--- 5. CANCHAS
--- =====================================================================
-CREATE TABLE canchas (
-    id_cancha     UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    id_disciplina UUID NOT NULL REFERENCES disciplinas(id_disciplina),
-    nombre        TEXT NOT NULL,
-    superficie    TEXT,
-    precio_base   NUMERIC(10,2) NOT NULL CHECK (precio_base >= 0),
-    estado        TEXT NOT NULL DEFAULT 'DISPONIBLE'
-        CHECK (estado IN ('DISPONIBLE', 'MANTENIMIENTO')),
-    creado_en     TIMESTAMPTZ NOT NULL DEFAULT now(),
-    UNIQUE (id_disciplina, nombre)
-);
-COMMENT ON TABLE canchas IS 'Cancha con disciplina, superficie, estado y precio (RF01, RF15).';
-
--- =====================================================================
--- 6. FRANJAS HORARIAS
---    Grilla RECURRENTE por cancha (día de semana + rango horario).
---    La fecha puntual de cada ocurrencia vive en reservas.fecha.
--- =====================================================================
-CREATE TABLE franjas_horarias (
-    id_franja   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    id_cancha   UUID NOT NULL REFERENCES canchas(id_cancha) ON DELETE CASCADE,
-    dia_semana  SMALLINT NOT NULL CHECK (dia_semana BETWEEN 0 AND 6), -- 0=domingo ... 6=sábado
-    hora_inicio TIME NOT NULL,
-    hora_fin    TIME NOT NULL CHECK (hora_fin > hora_inicio),
-    creado_en   TIMESTAMPTZ NOT NULL DEFAULT now(),
-    UNIQUE (id_cancha, dia_semana, hora_inicio)
-);
-COMMENT ON TABLE franjas_horarias IS 'Grilla de turnos por cancha (RF02, RF03).';
-
--- =====================================================================
--- 7. EQUIPAMIENTOS
--- =====================================================================
-CREATE TABLE equipamientos (
-    id_equipamiento  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    id_disciplina    UUID NOT NULL REFERENCES disciplinas(id_disciplina), -- soporta RF12.2
-    nombre           TEXT NOT NULL,
-    stock_total      INT NOT NULL CHECK (stock_total >= 0),
-    stock_disponible INT NOT NULL CHECK (stock_disponible >= 0),
-    precio_alquiler  NUMERIC(10,2) NOT NULL CHECK (precio_alquiler >= 0),
-    creado_en        TIMESTAMPTZ NOT NULL DEFAULT now(),
-    CHECK (stock_disponible <= stock_total)
-);
-COMMENT ON TABLE equipamientos IS 'Artículos deportivos con stock y precio de alquiler (RF12, RF13).';
-
--- =====================================================================
--- 8. RESERVAS
---    id_cancha se deriva de id_franja -> id_cancha (evita inconsistencia
---    cancha-vs-franja); XOR socio/no-socio.
--- =====================================================================
-CREATE TABLE reservas (
-    id_reserva     UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    id_franja      UUID NOT NULL REFERENCES franjas_horarias(id_franja),
-    fecha          DATE NOT NULL,
-    id_usuario     UUID REFERENCES usuarios(id_usuario),
-    id_no_socio    UUID REFERENCES no_socios(id_no_socio),
-    estado         TEXT NOT NULL DEFAULT 'CONFIRMADA'
-        CHECK (estado IN ('CONFIRMADA', 'EN_CURSO', 'COMPLETADA', 'CANCELADA')),
-    origen         TEXT NOT NULL DEFAULT 'AUTOGESTIONADA'
-        CHECK (origen IN ('AUTOGESTIONADA', 'MANUAL_GERENCIA')),
-    monto_total    NUMERIC(10,2) NOT NULL CHECK (monto_total >= 0),
-    creado_en      TIMESTAMPTZ NOT NULL DEFAULT now(),
-    actualizado_en TIMESTAMPTZ NOT NULL DEFAULT now(),
-    cancelado_en   TIMESTAMPTZ,
-    -- 3.1 XOR de reservante: exactamente uno de socio / no socio
-    CONSTRAINT ck_reserva_unico_reservante CHECK (
-        (id_usuario IS NOT NULL AND id_no_socio IS NULL)
-        OR
-        (id_usuario IS NULL AND id_no_socio IS NOT NULL)
-    )
-);
-COMMENT ON TABLE reservas IS 'Reserva de una franja por socio o no socio (RF02-RF05, RF07-RF10, RF16-RF18, RF20, RF22).';
-
--- Unicidad real de "franja ocupada": solo los estados que efectivamente
--- ocupan el turno bloquean el slot. CANCELADA/COMPLETADA no bloquean
--- reservas históricas futuras sobre el mismo slot (corrige el UNIQUE
--- (id_cancha, id_franja, fecha, estado) de schema.sql v1, que impedía
--- volver a reservar un turno luego de cancelarlo dos veces).
-CREATE UNIQUE INDEX uq_franja_ocupada
-    ON reservas (id_franja, fecha)
-    WHERE estado IN ('CONFIRMADA', 'EN_CURSO');
-
--- Índices estratégicos para disponibilidad de canchas / franjas
-CREATE INDEX idx_reservas_fecha              ON reservas (fecha);
-CREATE INDEX idx_reservas_usuario_estado     ON reservas (id_usuario, estado) WHERE id_usuario IS NOT NULL;
-CREATE INDEX idx_reservas_no_socio           ON reservas (id_no_socio) WHERE id_no_socio IS NOT NULL;
-CREATE INDEX idx_franjas_cancha_dia          ON franjas_horarias (id_cancha, dia_semana);
-CREATE INDEX idx_canchas_disciplina_estado   ON canchas (id_disciplina, estado);
-
--- Vista de conveniencia: reintroduce cancha/disciplina para consultas de
--- disponibilidad, sin desnormalizar la tabla reservas.
-CREATE VIEW v_reservas_detalle AS
-SELECT
-    r.id_reserva,
-    r.fecha,
-    c.id_cancha,
-    c.nombre        AS cancha_nombre,
-    c.id_disciplina,
-    f.dia_semana,
-    f.hora_inicio,
-    f.hora_fin,
-    r.id_usuario,
-    r.id_no_socio,
-    r.estado,
-    r.origen,
-    r.monto_total
-FROM reservas r
-JOIN franjas_horarias f ON f.id_franja = r.id_franja
-JOIN canchas c          ON c.id_cancha = f.id_cancha;
-
--- RF16: máximo 2 reservas CONFIRMADA simultáneas por socio, con lock
--- transaccional para evitar condición de carrera entre inserts
--- concurrentes del mismo socio (RNF03).
-CREATE OR REPLACE FUNCTION fn_check_max_reservas_activas()
-RETURNS TRIGGER AS $$
-DECLARE
-    v_cantidad INT;
+CREATE OR REPLACE FUNCTION fn_set_inactivated_at()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
 BEGIN
-    IF NEW.estado = 'CONFIRMADA' AND NEW.id_usuario IS NOT NULL THEN
-        PERFORM pg_advisory_xact_lock(hashtext(NEW.id_usuario::text));
 
-        SELECT count(*) INTO v_cantidad
+    IF OLD.estado = 'ACTIVO'
+       AND NEW.estado = 'INACTIVO'
+    THEN
+        NEW.inactivated_at = now();
+
+    ELSIF OLD.estado = 'INACTIVO'
+          AND NEW.estado = 'ACTIVO'
+    THEN
+        NEW.inactivated_at = NULL;
+    END IF;
+
+    RETURN NEW;
+END;
+$$;
+
+
+-- =====================================================================
+-- 6. TRIGGERS DE PERSONAS / CONTACTOS / DIRECCIONES
+-- =====================================================================
+
+CREATE TRIGGER trg_personas_actualizado
+BEFORE UPDATE ON personas
+FOR EACH ROW
+EXECUTE FUNCTION fn_update_actualizado_en();
+
+
+CREATE TRIGGER trg_contactos_actualizado
+BEFORE UPDATE ON contactos_persona
+FOR EACH ROW
+EXECUTE FUNCTION fn_update_actualizado_en();
+
+
+CREATE TRIGGER trg_direcciones_actualizado
+BEFORE UPDATE ON direcciones_persona
+FOR EACH ROW
+EXECUTE FUNCTION fn_update_actualizado_en();
+
+
+CREATE TRIGGER trg_contactos_inactivated
+BEFORE UPDATE OF estado ON contactos_persona
+FOR EACH ROW
+EXECUTE FUNCTION fn_set_inactivated_at();
+
+
+CREATE TRIGGER trg_direcciones_inactivated
+BEFORE UPDATE OF estado ON direcciones_persona
+FOR EACH ROW
+EXECUTE FUNCTION fn_set_inactivated_at();
+
+
+-- =====================================================================
+-- 7. USUARIOS
+--
+-- Una persona puede tener 0 o 1 cuenta.
+--
+-- id_usuario = id_persona
+--
+-- NO contiene:
+--   nombre
+--   apellido
+--   DNI
+--   CUIL
+--   email
+--   teléfono
+--
+-- Todo eso pertenece a PERSONAS / CONTACTOS_PERSONA.
+-- =====================================================================
+
+CREATE TABLE usuarios (
+    id_usuario UUID PRIMARY KEY
+        REFERENCES personas(id_persona)
+        ON DELETE RESTRICT,
+
+    id_contacto_login UUID,
+
+    rol TEXT NOT NULL
+        DEFAULT 'SOCIO',
+
+    estado TEXT NOT NULL
+        DEFAULT 'PENDIENTE',
+
+    password_hash TEXT,
+
+    incumplimientos_equipamiento INT NOT NULL
+        DEFAULT 0,
+
+    creado_en TIMESTAMPTZ NOT NULL
+        DEFAULT now(),
+
+    actualizado_en TIMESTAMPTZ NOT NULL
+        DEFAULT now(),
+
+    CONSTRAINT ck_usuario_rol
+        CHECK (
+            rol IN (
+                'SOCIO',
+                'GERENTE',
+                'ADMINISTRADOR'
+            )
+        ),
+
+    CONSTRAINT ck_usuario_estado
+        CHECK (
+            estado IN (
+                'PENDIENTE',
+                'ACTIVO',
+                'SUSPENDIDO'
+            )
+        ),
+
+    CONSTRAINT ck_usuario_incumplimientos
+        CHECK (
+            incumplimientos_equipamiento >= 0
+        )
+);
+
+COMMENT ON TABLE usuarios IS
+'Cuenta del sistema asociada 1:1 con una persona.';
+
+
+CREATE TRIGGER trg_usuarios_actualizado
+BEFORE UPDATE ON usuarios
+FOR EACH ROW
+EXECUTE FUNCTION fn_update_actualizado_en();
+
+
+-- =====================================================================
+-- 8. FUNCIÓN PARA VALIDAR CONTACTO DE LOGIN
+--
+-- El contacto utilizado para login debe:
+--   - pertenecer a la misma persona;
+--   - ser EMAIL;
+--   - estar ACTIVO.
+-- =====================================================================
+
+CREATE OR REPLACE FUNCTION fn_validar_contacto_login()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+
+    IF NEW.id_contacto_login IS NULL THEN
+        RETURN NEW;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM contactos_persona cp
+        WHERE cp.id_contacto = NEW.id_contacto_login
+          AND cp.id_persona = NEW.id_usuario
+          AND cp.tipo_contacto = 'EMAIL'
+          AND cp.estado = 'ACTIVO'
+    ) THEN
+
+        RAISE EXCEPTION
+            'El contacto de login debe ser un email activo perteneciente a la persona';
+
+    END IF;
+
+    RETURN NEW;
+END;
+$$;
+
+
+CREATE TRIGGER trg_validar_contacto_login
+BEFORE INSERT OR UPDATE OF id_contacto_login
+ON usuarios
+FOR EACH ROW
+EXECUTE FUNCTION fn_validar_contacto_login();
+
+
+-- Un contacto solamente puede ser login de un usuario.
+CREATE UNIQUE INDEX uq_usuario_contacto_login
+    ON usuarios (id_contacto_login)
+    WHERE id_contacto_login IS NOT NULL;
+
+
+-- =====================================================================
+-- 9. SOLICITUDES DE PERMISO
+-- =====================================================================
+
+CREATE TABLE solicitudes_permiso (
+    id_solicitud UUID PRIMARY KEY
+        DEFAULT gen_random_uuid(),
+
+    id_persona UUID NOT NULL
+        REFERENCES personas(id_persona)
+        ON DELETE RESTRICT,
+
+    origen TEXT NOT NULL,
+
+    estado TEXT NOT NULL
+        DEFAULT 'PENDIENTE',
+
+    id_gestor_aprobador UUID
+        REFERENCES usuarios(id_usuario),
+
+    id_usuario_generado UUID UNIQUE
+        REFERENCES usuarios(id_usuario),
+
+    fecha_solicitud TIMESTAMPTZ NOT NULL
+        DEFAULT now(),
+
+    fecha_resolucion TIMESTAMPTZ,
+
+    CONSTRAINT ck_solicitud_origen
+        CHECK (
+            origen IN (
+                'AUTOREGISTRO',
+                'GESTIONADA_POR_PERSONAL'
+            )
+        ),
+
+    CONSTRAINT ck_solicitud_estado
+        CHECK (
+            estado IN (
+                'PENDIENTE',
+                'APROBADA',
+                'RECHAZADA'
+            )
+        ),
+
+    CONSTRAINT ck_solicitud_aprobada
+        CHECK (
+            (
+                estado = 'APROBADA'
+                AND id_usuario_generado IS NOT NULL
+                AND fecha_resolucion IS NOT NULL
+            )
+            OR
+            (
+                estado <> 'APROBADA'
+                AND id_usuario_generado IS NULL
+            )
+        )
+);
+
+COMMENT ON TABLE solicitudes_permiso IS
+'Solicitudes de alta de una persona como usuario/socio del sistema.';
+
+
+CREATE UNIQUE INDEX uq_solicitud_pendiente_persona
+    ON solicitudes_permiso (id_persona)
+    WHERE estado = 'PENDIENTE';
+
+
+-- =====================================================================
+-- 10. AUDITORÍA
+--
+-- Se crea antes de los triggers que la utilizan.
+-- =====================================================================
+
+CREATE TABLE registros_auditoria (
+    id_registro UUID PRIMARY KEY
+        DEFAULT gen_random_uuid(),
+
+    actor_tipo TEXT NOT NULL
+        DEFAULT 'SISTEMA',
+
+    id_usuario UUID
+        REFERENCES usuarios(id_usuario)
+        ON DELETE SET NULL,
+
+    evento TEXT NOT NULL,
+
+    entidad TEXT NOT NULL,
+
+    id_entidad UUID,
+
+    detalle JSONB,
+
+    fecha TIMESTAMPTZ NOT NULL
+        DEFAULT now(),
+
+    CONSTRAINT ck_auditoria_actor
+        CHECK (
+            actor_tipo IN (
+                'USUARIO',
+                'SISTEMA'
+            )
+        )
+);
+
+COMMENT ON TABLE registros_auditoria IS
+'Registro histórico de eventos del sistema. Debe ser append-only.';
+
+
+CREATE INDEX idx_auditoria_usuario_fecha
+    ON registros_auditoria (id_usuario, fecha DESC);
+
+
+CREATE INDEX idx_auditoria_entidad_fecha
+    ON registros_auditoria (entidad, id_entidad, fecha DESC);
+
+
+CREATE INDEX idx_auditoria_fecha
+    ON registros_auditoria (fecha DESC);
+
+
+-- Evita modificaciones/borrados accidentales
+-- desde usuarios normales.
+REVOKE UPDATE, DELETE
+ON registros_auditoria
+FROM PUBLIC;
+
+
+-- =====================================================================
+-- 11. FUNCIÓN PARA VALIDAR GESTOR
+-- =====================================================================
+
+CREATE OR REPLACE FUNCTION fn_validar_gestor()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+
+    IF NEW.id_gestor_aprobador IS NOT NULL THEN
+
+        IF NOT EXISTS (
+            SELECT 1
+            FROM usuarios u
+            WHERE u.id_usuario = NEW.id_gestor_aprobador
+              AND u.rol IN (
+                  'GERENTE',
+                  'ADMINISTRADOR'
+              )
+              AND u.estado = 'ACTIVO'
+        ) THEN
+
+            RAISE EXCEPTION
+                'El gestor debe ser un Gerente o Administrador ACTIVO';
+
+        END IF;
+
+    END IF;
+
+    RETURN NEW;
+END;
+$$;
+
+
+CREATE TRIGGER trg_validar_gestor
+BEFORE INSERT OR UPDATE
+ON solicitudes_permiso
+FOR EACH ROW
+EXECUTE FUNCTION fn_validar_gestor();
+
+
+-- =====================================================================
+-- 12. PROCESAR SOLICITUD
+-- =====================================================================
+
+CREATE OR REPLACE FUNCTION fn_procesar_solicitud()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+
+    IF NEW.estado = 'APROBADA'
+       AND OLD.estado IS DISTINCT FROM NEW.estado
+    THEN
+
+        IF NOT EXISTS (
+            SELECT 1
+            FROM usuarios
+            WHERE id_usuario = NEW.id_persona
+        ) THEN
+
+            INSERT INTO usuarios (
+                id_usuario,
+                rol,
+                estado
+            )
+            VALUES (
+                NEW.id_persona,
+                'SOCIO',
+                'PENDIENTE'
+            );
+
+        END IF;
+
+        NEW.id_usuario_generado = NEW.id_persona;
+        NEW.fecha_resolucion = now();
+
+
+        INSERT INTO registros_auditoria (
+            actor_tipo,
+            id_usuario,
+            evento,
+            entidad,
+            id_entidad,
+            detalle
+        )
+        VALUES (
+            'USUARIO',
+            NEW.id_gestor_aprobador,
+            'SOLICITUD_APROBADA',
+            'solicitudes_permiso',
+            NEW.id_solicitud,
+            jsonb_build_object(
+                'id_persona', NEW.id_persona
+            )
+        );
+
+
+    ELSIF NEW.estado = 'RECHAZADA'
+          AND OLD.estado IS DISTINCT FROM NEW.estado
+    THEN
+
+        NEW.fecha_resolucion = now();
+
+        INSERT INTO registros_auditoria (
+            actor_tipo,
+            id_usuario,
+            evento,
+            entidad,
+            id_entidad,
+            detalle
+        )
+        VALUES (
+            'USUARIO',
+            NEW.id_gestor_aprobador,
+            'SOLICITUD_RECHAZADA',
+            'solicitudes_permiso',
+            NEW.id_solicitud,
+            jsonb_build_object(
+                'id_persona', NEW.id_persona
+            )
+        );
+
+    END IF;
+
+    RETURN NEW;
+END;
+$$;
+
+
+CREATE TRIGGER trg_procesar_solicitud
+BEFORE UPDATE ON solicitudes_permiso
+FOR EACH ROW
+EXECUTE FUNCTION fn_procesar_solicitud();
+
+
+-- =====================================================================
+-- 13. DISCIPLINAS
+-- =====================================================================
+
+CREATE TABLE disciplinas (
+    id_disciplina UUID PRIMARY KEY
+        DEFAULT gen_random_uuid(),
+
+    nombre TEXT NOT NULL UNIQUE,
+
+    descripcion TEXT,
+
+    creado_en TIMESTAMPTZ NOT NULL
+        DEFAULT now()
+);
+
+
+-- =====================================================================
+-- 14. CANCHAS
+-- =====================================================================
+
+CREATE TABLE canchas (
+    id_cancha UUID PRIMARY KEY
+        DEFAULT gen_random_uuid(),
+
+    id_disciplina UUID NOT NULL
+        REFERENCES disciplinas(id_disciplina),
+
+    nombre TEXT NOT NULL,
+
+    superficie TEXT,
+
+    precio_base NUMERIC(10,2) NOT NULL
+        CHECK (precio_base >= 0),
+
+    estado TEXT NOT NULL
+        DEFAULT 'DISPONIBLE',
+
+    creado_en TIMESTAMPTZ NOT NULL
+        DEFAULT now(),
+
+    CONSTRAINT ck_cancha_estado
+        CHECK (
+            estado IN (
+                'DISPONIBLE',
+                'MANTENIMIENTO'
+            )
+        ),
+
+    CONSTRAINT uq_cancha_disciplina_nombre
+        UNIQUE (
+            id_disciplina,
+            nombre
+        )
+);
+
+
+CREATE INDEX idx_canchas_disciplina_estado
+    ON canchas (
+        id_disciplina,
+        estado
+    );
+
+
+-- =====================================================================
+-- 15. FRANJAS HORARIAS
+-- =====================================================================
+
+CREATE TABLE franjas_horarias (
+    id_franja UUID PRIMARY KEY
+        DEFAULT gen_random_uuid(),
+
+    id_cancha UUID NOT NULL
+        REFERENCES canchas(id_cancha)
+        ON DELETE CASCADE,
+
+    dia_semana SMALLINT NOT NULL,
+
+    hora_inicio TIME NOT NULL,
+
+    hora_fin TIME NOT NULL,
+
+    creado_en TIMESTAMPTZ NOT NULL
+        DEFAULT now(),
+
+    CONSTRAINT ck_franja_dia
+        CHECK (
+            dia_semana BETWEEN 0 AND 6
+        ),
+
+    CONSTRAINT ck_franja_horas
+        CHECK (
+            hora_fin > hora_inicio
+        ),
+
+    CONSTRAINT uq_franja
+        UNIQUE (
+            id_cancha,
+            dia_semana,
+            hora_inicio
+        )
+);
+
+
+CREATE INDEX idx_franjas_cancha_dia
+    ON franjas_horarias (
+        id_cancha,
+        dia_semana,
+        hora_inicio
+    );
+
+
+-- =====================================================================
+-- 16. EQUIPAMIENTOS
+-- =====================================================================
+
+CREATE TABLE equipamientos (
+    id_equipamiento UUID PRIMARY KEY
+        DEFAULT gen_random_uuid(),
+
+    id_disciplina UUID NOT NULL
+        REFERENCES disciplinas(id_disciplina),
+
+    nombre TEXT NOT NULL,
+
+    stock_total INT NOT NULL
+        CHECK (stock_total >= 0),
+
+    stock_disponible INT NOT NULL
+        CHECK (stock_disponible >= 0),
+
+    precio_alquiler NUMERIC(10,2) NOT NULL
+        CHECK (precio_alquiler >= 0),
+
+    creado_en TIMESTAMPTZ NOT NULL
+        DEFAULT now(),
+
+    CONSTRAINT ck_stock_valido
+        CHECK (
+            stock_disponible <= stock_total
+        ),
+
+    CONSTRAINT uq_equipamiento_disciplina_nombre
+        UNIQUE (
+            id_disciplina,
+            nombre
+        )
+);
+
+
+CREATE INDEX idx_equipamientos_disciplina
+    ON equipamientos (
+        id_disciplina
+    );
+
+
+-- =====================================================================
+-- 17. RESERVAS
+-- =====================================================================
+
+CREATE TABLE reservas (
+    id_reserva UUID PRIMARY KEY
+        DEFAULT gen_random_uuid(),
+
+    id_franja UUID NOT NULL
+        REFERENCES franjas_horarias(id_franja),
+
+    fecha DATE NOT NULL,
+
+    id_persona UUID NOT NULL
+        REFERENCES personas(id_persona)
+        ON DELETE RESTRICT,
+
+    estado TEXT NOT NULL
+        DEFAULT 'CONFIRMADA',
+
+    origen TEXT NOT NULL
+        DEFAULT 'AUTOGESTIONADA',
+
+    monto_total NUMERIC(10,2) NOT NULL
+        DEFAULT 0
+        CHECK (monto_total >= 0),
+
+    creado_en TIMESTAMPTZ NOT NULL
+        DEFAULT now(),
+
+    actualizado_en TIMESTAMPTZ NOT NULL
+        DEFAULT now(),
+
+    cancelado_en TIMESTAMPTZ,
+
+    CONSTRAINT ck_reserva_estado
+        CHECK (
+            estado IN (
+                'CONFIRMADA',
+                'EN_CURSO',
+                'COMPLETADA',
+                'CANCELADA'
+            )
+        ),
+
+    CONSTRAINT ck_reserva_origen
+        CHECK (
+            origen IN (
+                'AUTOGESTIONADA',
+                'MANUAL_GERENCIA'
+            )
+        ),
+
+    CONSTRAINT ck_reserva_cancelado_en
+        CHECK (
+            (estado = 'CANCELADA' AND cancelado_en IS NOT NULL)
+            OR
+            (estado <> 'CANCELADA' AND cancelado_en IS NULL)
+        )
+);
+
+
+-- =====================================================================
+-- 18. ÍNDICE CRÍTICO DE DISPONIBILIDAD
+--
+-- Impide dos reservas activas para la misma franja y fecha.
+-- La concurrencia queda protegida por PostgreSQL.
+-- =====================================================================
+
+CREATE UNIQUE INDEX uq_reserva_franja_fecha_activa
+    ON reservas (
+        id_franja,
+        fecha
+    )
+    WHERE estado IN (
+        'CONFIRMADA',
+        'EN_CURSO'
+    );
+
+
+-- Búsqueda por fecha.
+CREATE INDEX idx_reservas_fecha
+    ON reservas (fecha);
+
+
+-- Historial de reservas de una persona.
+CREATE INDEX idx_reservas_persona_fecha
+    ON reservas (
+        id_persona,
+        fecha DESC
+    );
+
+
+-- Consultas de reservas por estado.
+CREATE INDEX idx_reservas_estado_fecha
+    ON reservas (
+        estado,
+        fecha
+    );
+
+
+-- =====================================================================
+-- 19. VALIDACIÓN DE RESERVA
+--
+-- Controla:
+--   - que el día de la semana coincida;
+--   - que la cancha esté disponible;
+--   - que el usuario esté ACTIVO si tiene cuenta;
+--   - máximo 2 reservas CONFIRMADAS.
+-- =====================================================================
+
+CREATE OR REPLACE FUNCTION fn_validar_reserva()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+
+    v_dia_semana INT;
+    v_estado_cancha TEXT;
+    v_estado_usuario TEXT;
+    v_precio NUMERIC(10,2);
+    v_cantidad INT;
+
+BEGIN
+
+    v_dia_semana =
+        EXTRACT(
+            DOW FROM NEW.fecha
+        );
+
+
+    -- ---------------------------------------------------------------
+    -- Validar franja / fecha
+    -- ---------------------------------------------------------------
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM franjas_horarias f
+        WHERE f.id_franja = NEW.id_franja
+          AND f.dia_semana = v_dia_semana
+    ) THEN
+
+        RAISE EXCEPTION
+            'La fecha no corresponde al día de la semana de la franja';
+
+    END IF;
+
+
+    -- ---------------------------------------------------------------
+    -- Estado de cancha y precio
+    -- ---------------------------------------------------------------
+
+    SELECT
+        c.estado,
+        c.precio_base
+    INTO
+        v_estado_cancha,
+        v_precio
+    FROM franjas_horarias f
+    JOIN canchas c
+        ON c.id_cancha = f.id_cancha
+    WHERE f.id_franja = NEW.id_franja;
+
+
+    IF v_estado_cancha = 'MANTENIMIENTO' THEN
+
+        RAISE EXCEPTION
+            'La cancha se encuentra en mantenimiento';
+
+    END IF;
+
+
+    -- ---------------------------------------------------------------
+    -- Usuario
+    -- ---------------------------------------------------------------
+
+    SELECT estado
+    INTO v_estado_usuario
+    FROM usuarios
+    WHERE id_usuario = NEW.id_persona;
+
+
+    IF v_estado_usuario IS NOT NULL
+       AND v_estado_usuario <> 'ACTIVO'
+       AND NEW.estado = 'CONFIRMADA'
+    THEN
+
+        RAISE EXCEPTION
+            'El usuario debe estar ACTIVO para reservar';
+
+    END IF;
+
+
+    -- ---------------------------------------------------------------
+    -- Máximo 2 reservas confirmadas por socio
+    --
+    -- Se utiliza advisory lock para evitar race conditions.
+    -- ---------------------------------------------------------------
+
+    IF v_estado_usuario = 'ACTIVO'
+       AND NEW.estado = 'CONFIRMADA'
+    THEN
+
+        PERFORM pg_advisory_xact_lock(
+            hashtextextended(
+                NEW.id_persona::TEXT,
+                0
+            )
+        );
+
+
+        SELECT count(*)
+        INTO v_cantidad
         FROM reservas
-        WHERE id_usuario = NEW.id_usuario
-          AND estado = 'CONFIRMADA'
-          AND id_reserva <> COALESCE(NEW.id_reserva, '00000000-0000-0000-0000-000000000000'::uuid);
+        WHERE id_persona = NEW.id_persona
+          AND estado = 'CONFIRMADA';
+
 
         IF v_cantidad >= 2 THEN
-            RAISE EXCEPTION 'El socio ya tiene el máximo de 2 reservas CONFIRMADA permitidas (RF16)';
+
+            RAISE EXCEPTION
+                'El usuario ya posee el máximo de 2 reservas confirmadas';
+
         END IF;
+
     END IF;
+
+
+    NEW.monto_total = v_precio;
+
     RETURN NEW;
+
 END;
-$$ LANGUAGE plpgsql;
+$$;
 
-CREATE TRIGGER trg_max_reservas_activas
-    BEFORE INSERT OR UPDATE ON reservas
-    FOR EACH ROW EXECUTE FUNCTION fn_check_max_reservas_activas();
 
--- RF14/RNF05: deja un rastro append-only de cada alta/cambio de estado
--- de reserva, sin depender de que el backend lo registre siempre.
-CREATE OR REPLACE FUNCTION fn_auditoria_reserva()
-RETURNS TRIGGER AS $$
-BEGIN
-    IF TG_OP = 'INSERT' THEN
-        INSERT INTO registros_auditoria (actor_tipo, id_usuario, evento, entidad, id_entidad, detalle)
-        VALUES ('SISTEMA', NEW.id_usuario, 'RESERVA_CREADA', 'reservas', NEW.id_reserva,
-                jsonb_build_object('estado', NEW.estado, 'origen', NEW.origen));
-    ELSIF TG_OP = 'UPDATE' AND OLD.estado IS DISTINCT FROM NEW.estado THEN
-        INSERT INTO registros_auditoria (actor_tipo, id_usuario, evento, entidad, id_entidad, detalle)
-        VALUES ('SISTEMA', NEW.id_usuario, 'RESERVA_CAMBIO_ESTADO', 'reservas', NEW.id_reserva,
-                jsonb_build_object('estado_anterior', OLD.estado, 'estado_nuevo', NEW.estado));
-    END IF;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
+CREATE TRIGGER trg_validar_reserva
+BEFORE INSERT ON reservas
+FOR EACH ROW
+EXECUTE FUNCTION fn_validar_reserva();
 
-CREATE TRIGGER trg_auditoria_reserva
-    AFTER INSERT OR UPDATE ON reservas
-    FOR EACH ROW EXECUTE FUNCTION fn_auditoria_reserva();
 
 -- =====================================================================
--- 9. DETALLE ALQUILER EQUIPAMIENTO
+-- 20. ACTUALIZACIÓN DE RESERVAS
 -- =====================================================================
-CREATE TABLE detalle_alquiler_equipamiento (
-    id_detalle                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    id_reserva                UUID NOT NULL REFERENCES reservas(id_reserva) ON DELETE CASCADE,
-    id_equipamiento           UUID NOT NULL REFERENCES equipamientos(id_equipamiento),
-    cantidad                  INT NOT NULL CHECK (cantidad > 0), -- RF12.1
-    precio_unitario           NUMERIC(10,2) NOT NULL CHECK (precio_unitario >= 0),
-    subtotal                  NUMERIC(10,2) NOT NULL CHECK (subtotal >= 0),
-    fecha_devolucion_estimada TIMESTAMPTZ, -- se completa por trigger, RF13.1
-    fecha_devolucion_real     TIMESTAMPTZ,
-    estado_devolucion         TEXT NOT NULL DEFAULT 'PENDIENTE'
-        CHECK (estado_devolucion IN ('PENDIENTE', 'DEVUELTO', 'DEVUELTO_TARDE', 'NO_DEVUELTO')),
-    creado_en                 TIMESTAMPTZ NOT NULL DEFAULT now(),
-    UNIQUE (id_reserva, id_equipamiento)
-);
-COMMENT ON TABLE detalle_alquiler_equipamiento IS 'Equipamiento alquilado en cada reserva (RF03.2, RF12, RF13).';
 
-CREATE INDEX idx_detalle_reserva ON detalle_alquiler_equipamiento (id_reserva);
-
--- RF12.2 + RF21.3 + RF12.3: valida en un solo trigger, con lock de fila
--- sobre el equipamiento (SELECT ... FOR UPDATE) para descuento atómico
--- de stock (RNF03), que:
---   a) el equipamiento pertenezca a la disciplina de la cancha reservada;
---   b) la reserva sea de un Socio (los no socios no alquilan equipamiento);
---   c) haya stock disponible suficiente, y lo descuenta de inmediato.
-CREATE OR REPLACE FUNCTION fn_validar_alquiler_equipamiento()
-RETURNS TRIGGER AS $$
+CREATE OR REPLACE FUNCTION fn_actualizar_reserva()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
 DECLARE
-    v_id_usuario        UUID;
-    v_id_no_socio       UUID;
+
+    v_actor_rol TEXT;
+    v_inicio_turno TIMESTAMPTZ;
+
+BEGIN
+
+    v_actor_rol =
+        current_setting(
+            'app.actor_rol',
+            true
+        );
+
+
+    -- ---------------------------------------------------------------
+    -- Validar transiciones
+    -- ---------------------------------------------------------------
+
+    IF NEW.estado IS DISTINCT FROM OLD.estado THEN
+
+        IF NOT (
+            (
+                OLD.estado = 'CONFIRMADA'
+                AND NEW.estado IN (
+                    'EN_CURSO',
+                    'CANCELADA'
+                )
+            )
+            OR
+            (
+                OLD.estado = 'EN_CURSO'
+                AND NEW.estado IN (
+                    'COMPLETADA',
+                    'CANCELADA'
+                )
+            )
+        ) THEN
+
+            RAISE EXCEPTION
+                'Transición de estado inválida: % -> %',
+                OLD.estado,
+                NEW.estado;
+
+        END IF;
+
+
+        -- -----------------------------------------------------------
+        -- Cancelación
+        -- -----------------------------------------------------------
+
+        IF NEW.estado = 'CANCELADA' THEN
+
+            IF NEW.origen = 'AUTOGESTIONADA'
+               AND COALESCE(v_actor_rol, 'SOCIO') = 'SOCIO'
+            THEN
+
+                SELECT
+                    (
+                        NEW.fecha + f.hora_inicio
+                    ) AT TIME ZONE
+                    'America/Argentina/Cordoba'
+
+                INTO v_inicio_turno
+
+                FROM franjas_horarias f
+                WHERE f.id_franja = NEW.id_franja;
+
+
+                IF now() >
+                   v_inicio_turno - INTERVAL '1 day'
+                THEN
+
+                    RAISE EXCEPTION
+                        'La cancelación requiere al menos 1 día de antelación';
+
+                END IF;
+
+            END IF;
+
+
+            NEW.cancelado_en = now();
+
+        END IF;
+
+    END IF;
+
+
+    NEW.actualizado_en = now();
+
+    RETURN NEW;
+
+END;
+$$;
+
+
+CREATE TRIGGER trg_actualizar_reserva
+BEFORE UPDATE ON reservas
+FOR EACH ROW
+EXECUTE FUNCTION fn_actualizar_reserva();
+
+
+-- =====================================================================
+-- 21. DETALLE DE ALQUILER DE EQUIPAMIENTO
+-- =====================================================================
+
+CREATE TABLE detalle_alquiler_equipamiento (
+    id_detalle UUID PRIMARY KEY
+        DEFAULT gen_random_uuid(),
+
+    id_reserva UUID NOT NULL
+        REFERENCES reservas(id_reserva)
+        ON DELETE CASCADE,
+
+    id_equipamiento UUID NOT NULL
+        REFERENCES equipamientos(id_equipamiento),
+
+    cantidad INT NOT NULL
+        CHECK (cantidad > 0),
+
+    precio_unitario NUMERIC(10,2)
+        CHECK (precio_unitario >= 0),
+
+    subtotal NUMERIC(10,2)
+        CHECK (subtotal >= 0),
+
+    fecha_devolucion_estimada TIMESTAMPTZ,
+
+    fecha_devolucion_real TIMESTAMPTZ,
+
+    estado_devolucion TEXT NOT NULL
+        DEFAULT 'PENDIENTE',
+
+    creado_en TIMESTAMPTZ NOT NULL
+        DEFAULT now(),
+
+    CONSTRAINT ck_estado_devolucion
+        CHECK (
+            estado_devolucion IN (
+                'PENDIENTE',
+                'DEVUELTO',
+                'DEVUELTO_TARDE',
+                'NO_DEVUELTO',
+                'CANCELADO'
+            )
+        ),
+
+    CONSTRAINT uq_reserva_equipamiento
+        UNIQUE (
+            id_reserva,
+            id_equipamiento
+        )
+);
+
+
+CREATE INDEX idx_detalle_reserva
+    ON detalle_alquiler_equipamiento (
+        id_reserva
+    );
+
+
+CREATE INDEX idx_detalle_devolucion_pendiente
+    ON detalle_alquiler_equipamiento (
+        fecha_devolucion_estimada
+    )
+    WHERE estado_devolucion = 'PENDIENTE';
+
+
+-- =====================================================================
+-- 22. VALIDAR / RESERVAR STOCK
+-- =====================================================================
+
+CREATE OR REPLACE FUNCTION fn_validar_alquiler_equipamiento()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+
+    v_persona UUID;
+    v_estado_usuario TEXT;
+
     v_disciplina_cancha UUID;
     v_disciplina_equipo UUID;
-    v_stock_disponible  INT;
+
+    v_stock INT;
+    v_precio NUMERIC(10,2);
+
 BEGIN
-    SELECT r.id_usuario, r.id_no_socio, c.id_disciplina
-      INTO v_id_usuario, v_id_no_socio, v_disciplina_cancha
+
+    -- ---------------------------------------------------------------
+    -- Obtener reserva y disciplina
+    -- ---------------------------------------------------------------
+
+    SELECT
+        r.id_persona,
+        c.id_disciplina
+    INTO
+        v_persona,
+        v_disciplina_cancha
     FROM reservas r
-    JOIN franjas_horarias f ON f.id_franja = r.id_franja
-    JOIN canchas c          ON c.id_cancha = f.id_cancha
+    JOIN franjas_horarias f
+        ON f.id_franja = r.id_franja
+    JOIN canchas c
+        ON c.id_cancha = f.id_cancha
     WHERE r.id_reserva = NEW.id_reserva;
 
-    IF v_id_no_socio IS NOT NULL THEN
-        RAISE EXCEPTION 'Un no socio no puede alquilar equipamiento (RF21.3)';
+
+    -- ---------------------------------------------------------------
+    -- Solo usuarios ACTIVO
+    -- ---------------------------------------------------------------
+
+    SELECT estado
+    INTO v_estado_usuario
+    FROM usuarios
+    WHERE id_usuario = v_persona;
+
+
+    IF v_estado_usuario IS NULL THEN
+
+        RAISE EXCEPTION
+            'Un invitado no puede alquilar equipamiento';
+
     END IF;
 
-    SELECT id_disciplina, stock_disponible
-      INTO v_disciplina_equipo, v_stock_disponible
+
+    IF v_estado_usuario <> 'ACTIVO' THEN
+
+        RAISE EXCEPTION
+            'El usuario debe estar ACTIVO para alquilar equipamiento';
+
+    END IF;
+
+
+    -- ---------------------------------------------------------------
+    -- Lock de fila del equipamiento
+    -- ---------------------------------------------------------------
+
+    SELECT
+        id_disciplina,
+        stock_disponible,
+        precio_alquiler
+    INTO
+        v_disciplina_equipo,
+        v_stock,
+        v_precio
     FROM equipamientos
     WHERE id_equipamiento = NEW.id_equipamiento
     FOR UPDATE;
 
+
     IF v_disciplina_equipo <> v_disciplina_cancha THEN
-        RAISE EXCEPTION 'El equipamiento debe pertenecer a la disciplina de la cancha reservada (RF12.2)';
+
+        RAISE EXCEPTION
+            'El equipamiento no corresponde a la disciplina de la cancha';
+
     END IF;
 
-    IF v_stock_disponible < NEW.cantidad THEN
-        RAISE EXCEPTION 'Stock insuficiente para el equipamiento solicitado (RF12.3)';
+
+    IF v_stock < NEW.cantidad THEN
+
+        RAISE EXCEPTION
+            'Stock insuficiente';
+
     END IF;
+
+
+    NEW.precio_unitario = COALESCE(
+        NEW.precio_unitario,
+        v_precio
+    );
+
+
+    NEW.subtotal =
+        NEW.precio_unitario * NEW.cantidad;
+
+
+    -- ---------------------------------------------------------------
+    -- Reservar stock
+    -- ---------------------------------------------------------------
 
     UPDATE equipamientos
-       SET stock_disponible = stock_disponible - NEW.cantidad
-     WHERE id_equipamiento = NEW.id_equipamiento;
+    SET stock_disponible =
+        stock_disponible - NEW.cantidad
+    WHERE id_equipamiento = NEW.id_equipamiento;
+
 
     RETURN NEW;
+
 END;
-$$ LANGUAGE plpgsql;
+$$;
 
-CREATE TRIGGER trg_validar_alquiler_equipamiento
-    BEFORE INSERT ON detalle_alquiler_equipamiento
-    FOR EACH ROW EXECUTE FUNCTION fn_validar_alquiler_equipamiento();
 
--- RF13.1: calcula fecha_devolucion_estimada = fin de franja + 15 min,
--- en vez de dejarlo librado a que el backend lo calcule bien siempre.
--- Ajustar el nombre de zona horaria al del club si difiere.
-CREATE OR REPLACE FUNCTION fn_set_fecha_devolucion_estimada()
-RETURNS TRIGGER AS $$
+CREATE TRIGGER trg_validar_alquiler
+BEFORE INSERT ON detalle_alquiler_equipamiento
+FOR EACH ROW
+EXECUTE FUNCTION fn_validar_alquiler_equipamiento();
+
+
+-- =====================================================================
+-- 23. FECHA DE DEVOLUCIÓN ESTIMADA
+-- =====================================================================
+
+CREATE OR REPLACE FUNCTION fn_set_fecha_devolucion()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
 DECLARE
+
     v_hora_fin TIME;
-    v_fecha    DATE;
+    v_fecha DATE;
+
 BEGIN
+
     IF NEW.fecha_devolucion_estimada IS NULL THEN
-        SELECT f.hora_fin, r.fecha INTO v_hora_fin, v_fecha
+
+        SELECT
+            f.hora_fin,
+            r.fecha
+        INTO
+            v_hora_fin,
+            v_fecha
         FROM reservas r
-        JOIN franjas_horarias f ON f.id_franja = r.id_franja
+        JOIN franjas_horarias f
+            ON f.id_franja = r.id_franja
         WHERE r.id_reserva = NEW.id_reserva;
 
-        NEW.fecha_devolucion_estimada :=
-            (v_fecha + v_hora_fin) AT TIME ZONE 'America/Argentina/Cordoba' + INTERVAL '15 minutes';
+
+        NEW.fecha_devolucion_estimada =
+            (
+                v_fecha + v_hora_fin
+            ) AT TIME ZONE
+            'America/Argentina/Cordoba'
+            + INTERVAL '15 minutes';
+
     END IF;
+
     RETURN NEW;
+
 END;
-$$ LANGUAGE plpgsql;
+$$;
 
-CREATE TRIGGER trg_set_fecha_devolucion_estimada
-    BEFORE INSERT ON detalle_alquiler_equipamiento
-    FOR EACH ROW EXECUTE FUNCTION fn_set_fecha_devolucion_estimada();
 
--- RF13.2/RF13.3/RF13.4: al registrar la devolución, repone stock salvo
--- NO_DEVUELTO ("no repone stock automáticamente"), y lleva el contador
--- de incumplimientos hasta suspender la cuenta al tercero (RF13.4).
-CREATE OR REPLACE FUNCTION fn_gestionar_devolucion_equipamiento()
-RETURNS TRIGGER AS $$
+CREATE TRIGGER trg_set_fecha_devolucion
+BEFORE INSERT ON detalle_alquiler_equipamiento
+FOR EACH ROW
+EXECUTE FUNCTION fn_set_fecha_devolucion();
+
+
+-- =====================================================================
+-- 24. RECALCULAR MONTO DE RESERVA
+-- =====================================================================
+
+CREATE OR REPLACE FUNCTION fn_recalcular_monto_reserva()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
 DECLARE
-    v_id_usuario      UUID;
+
+    v_id_reserva UUID;
+    v_precio_base NUMERIC(10,2);
+
+BEGIN
+
+    v_id_reserva =
+        COALESCE(
+            NEW.id_reserva,
+            OLD.id_reserva
+        );
+
+
+    SELECT
+        c.precio_base
+    INTO v_precio_base
+    FROM reservas r
+    JOIN franjas_horarias f
+        ON f.id_franja = r.id_franja
+    JOIN canchas c
+        ON c.id_cancha = f.id_cancha
+    WHERE r.id_reserva = v_id_reserva;
+
+
+    UPDATE reservas r
+    SET
+        monto_total =
+            v_precio_base
+            +
+            COALESCE(
+                (
+                    SELECT SUM(subtotal)
+                    FROM detalle_alquiler_equipamiento d
+                    WHERE d.id_reserva = v_id_reserva
+                      AND d.estado_devolucion <> 'CANCELADO'
+                ),
+                0
+            ),
+        actualizado_en = now()
+    WHERE r.id_reserva = v_id_reserva;
+
+
+    RETURN COALESCE(NEW, OLD);
+
+END;
+$$;
+
+
+CREATE TRIGGER trg_recalcular_monto
+AFTER INSERT OR UPDATE OR DELETE
+ON detalle_alquiler_equipamiento
+FOR EACH ROW
+EXECUTE FUNCTION fn_recalcular_monto_reserva();
+
+
+-- =====================================================================
+-- 25. DEVOLUCIÓN DE EQUIPAMIENTO
+-- =====================================================================
+
+CREATE OR REPLACE FUNCTION fn_gestionar_devolucion()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+
+    v_persona UUID;
     v_incumplimientos INT;
-BEGIN
-    IF OLD.estado_devolucion IS DISTINCT FROM NEW.estado_devolucion THEN
 
-        IF NEW.estado_devolucion IN ('DEVUELTO', 'DEVUELTO_TARDE') THEN
+BEGIN
+
+    IF OLD.estado_devolucion IS DISTINCT FROM NEW.estado_devolucion
+    THEN
+
+        -- -----------------------------------------------------------
+        -- Devolución normal / tardía
+        -- -----------------------------------------------------------
+
+        IF NEW.estado_devolucion IN (
+            'DEVUELTO',
+            'DEVUELTO_TARDE'
+        )
+        AND OLD.estado_devolucion IN (
+            'PENDIENTE',
+            'NO_DEVUELTO'
+        )
+        THEN
+
             UPDATE equipamientos
-               SET stock_disponible = stock_disponible + NEW.cantidad
-             WHERE id_equipamiento = NEW.id_equipamiento;
+            SET stock_disponible =
+                stock_disponible + NEW.cantidad
+            WHERE id_equipamiento =
+                NEW.id_equipamiento;
+
+
+            NEW.fecha_devolucion_real =
+                COALESCE(
+                    NEW.fecha_devolucion_real,
+                    now()
+                );
+
         END IF;
 
-        IF NEW.estado_devolucion IN ('DEVUELTO_TARDE', 'NO_DEVUELTO') THEN
-            SELECT r.id_usuario INTO v_id_usuario
-            FROM reservas r WHERE r.id_reserva = NEW.id_reserva;
 
-            IF v_id_usuario IS NOT NULL THEN
+        -- -----------------------------------------------------------
+        -- Incumplimiento
+        -- -----------------------------------------------------------
+
+        IF NEW.estado_devolucion IN (
+            'DEVUELTO_TARDE',
+            'NO_DEVUELTO'
+        )
+        AND OLD.estado_devolucion = 'PENDIENTE'
+        THEN
+
+            SELECT r.id_persona
+            INTO v_persona
+            FROM reservas r
+            WHERE r.id_reserva = NEW.id_reserva;
+
+
+            UPDATE usuarios
+            SET
+                incumplimientos_equipamiento =
+                    incumplimientos_equipamiento + 1,
+                actualizado_en = now()
+            WHERE id_usuario = v_persona
+            RETURNING incumplimientos_equipamiento
+            INTO v_incumplimientos;
+
+
+            INSERT INTO registros_auditoria (
+                actor_tipo,
+                id_usuario,
+                evento,
+                entidad,
+                id_entidad,
+                detalle
+            )
+            VALUES (
+                'SISTEMA',
+                v_persona,
+                'INCUMPLIMIENTO_EQUIPAMIENTO',
+                'detalle_alquiler_equipamiento',
+                NEW.id_detalle,
+                jsonb_build_object(
+                    'estado',
+                    NEW.estado_devolucion,
+                    'total_incumplimientos',
+                    v_incumplimientos
+                )
+            );
+
+
+            -- -------------------------------------------------------
+            -- Suspender al tercero
+            -- -------------------------------------------------------
+
+            IF v_incumplimientos >= 3 THEN
+
                 UPDATE usuarios
-                   SET incumplimientos_equipamiento = incumplimientos_equipamiento + 1,
-                       actualizado_en = now()
-                 WHERE id_usuario = v_id_usuario
-                 RETURNING incumplimientos_equipamiento INTO v_incumplimientos;
+                SET
+                    estado = 'SUSPENDIDO',
+                    actualizado_en = now()
+                WHERE id_usuario = v_persona
+                  AND estado <> 'SUSPENDIDO';
 
-                INSERT INTO registros_auditoria (actor_tipo, id_usuario, evento, entidad, id_entidad, detalle)
-                VALUES ('SISTEMA', v_id_usuario, 'INCUMPLIMIENTO_EQUIPAMIENTO', 'detalle_alquiler_equipamiento', NEW.id_detalle,
-                        jsonb_build_object('estado_devolucion', NEW.estado_devolucion, 'total_incumplimientos', v_incumplimientos));
 
-                IF v_incumplimientos >= 3 THEN
-                    UPDATE usuarios SET estado = 'SUSPENDIDO', actualizado_en = now()
-                     WHERE id_usuario = v_id_usuario AND estado <> 'SUSPENDIDO';
+                INSERT INTO registros_auditoria (
+                    actor_tipo,
+                    id_usuario,
+                    evento,
+                    entidad,
+                    id_entidad,
+                    detalle
+                )
+                VALUES (
+                    'SISTEMA',
+                    v_persona,
+                    'USUARIO_SUSPENDIDO_POR_INCUMPLIMIENTOS',
+                    'usuarios',
+                    v_persona,
+                    jsonb_build_object(
+                        'incumplimientos',
+                        v_incumplimientos
+                    )
+                );
 
-                    INSERT INTO registros_auditoria (actor_tipo, id_usuario, evento, entidad, id_entidad, detalle)
-                    VALUES ('SISTEMA', v_id_usuario, 'USUARIO_SUSPENDIDO_POR_INCUMPLIMIENTOS', 'usuarios', v_id_usuario,
-                            jsonb_build_object('incumplimientos', v_incumplimientos));
-                END IF;
             END IF;
+
         END IF;
+
     END IF;
+
+
     RETURN NEW;
+
 END;
-$$ LANGUAGE plpgsql;
+$$;
 
-CREATE TRIGGER trg_gestionar_devolucion_equipamiento
-    AFTER UPDATE ON detalle_alquiler_equipamiento
-    FOR EACH ROW EXECUTE FUNCTION fn_gestionar_devolucion_equipamiento();
 
--- RF13.3: marca NO_DEVUELTO tras 24hs sin devolución post-franja. No hay
--- evento de BD que dispare esto por el mero paso del tiempo: debe
--- programarse como job periódico (pg_cron / Supabase scheduled function),
--- p.ej. `select cron.schedule('marcar-no-devueltos', '*/15 * * * *',
--- 'select fn_marcar_no_devueltos()');`.
-CREATE OR REPLACE FUNCTION fn_marcar_no_devueltos()
-RETURNS void AS $$
+CREATE TRIGGER trg_gestionar_devolucion
+AFTER UPDATE OF estado_devolucion
+ON detalle_alquiler_equipamiento
+FOR EACH ROW
+EXECUTE FUNCTION fn_gestionar_devolucion();
+
+
+-- =====================================================================
+-- 26. CANCELACIÓN DE RESERVA -> LIBERAR EQUIPAMIENTO
+--
+-- Importante:
+-- Una reserva cancelada debe devolver al stock el equipamiento
+-- que todavía estaba pendiente.
+-- =====================================================================
+
+CREATE OR REPLACE FUNCTION fn_liberar_equipamiento_cancelado()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
 BEGIN
-    UPDATE detalle_alquiler_equipamiento
-       SET estado_devolucion = 'NO_DEVUELTO'
-     WHERE estado_devolucion = 'PENDIENTE'
-       AND fecha_devolucion_estimada IS NOT NULL
-       AND fecha_devolucion_estimada + INTERVAL '24 hours' < now();
-END;
-$$ LANGUAGE plpgsql;
 
--- =====================================================================
--- 10. REGISTROS DE AUDITORÍA
---     Contempla actor humano (USUARIO) o del sistema (SISTEMA/triggers).
--- =====================================================================
-CREATE TABLE registros_auditoria (
-    id_registro UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    actor_tipo  TEXT NOT NULL DEFAULT 'USUARIO'
-        CHECK (actor_tipo IN ('USUARIO', 'SISTEMA')),
-    id_usuario  UUID REFERENCES usuarios(id_usuario), -- NULL si actor_tipo = SISTEMA sin usuario asociado
-    evento      TEXT NOT NULL,   -- ej: 'RESERVA_CREADA', 'EQUIPAMIENTO_NO_DEVUELTO'
-    entidad     TEXT NOT NULL,   -- tabla/entidad afectada
-    id_entidad  UUID,
-    detalle     JSONB,
-    fecha       TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-COMMENT ON TABLE registros_auditoria IS 'Eventos de auditoría con actor y fecha (RF14, RNF05). Solo-append.';
+    IF NEW.estado = 'CANCELADA'
+       AND OLD.estado <> 'CANCELADA'
+    THEN
 
-CREATE INDEX idx_auditoria_actor ON registros_auditoria (id_usuario);
-CREATE INDEX idx_auditoria_fecha ON registros_auditoria (fecha);
-
--- RNF05: solo-append a nivel de permisos, no solo de convención.
--- Ajustar el nombre de rol al que use realmente el backend/Supabase.
-REVOKE UPDATE, DELETE ON registros_auditoria FROM PUBLIC;
-
--- =====================================================================
--- 11. RF15: cancha a MANTENIMIENTO -> cancela reservas CONFIRMADA
---     futuras y libera el stock de equipamiento aún no retirado.
--- =====================================================================
-CREATE OR REPLACE FUNCTION fn_cancha_a_mantenimiento()
-RETURNS TRIGGER AS $$
-BEGIN
-    IF NEW.estado = 'MANTENIMIENTO' AND OLD.estado IS DISTINCT FROM NEW.estado THEN
-
-        -- Libera el stock de equipamiento pendiente de retiro asociado a
-        -- las reservas que se van a cancelar.
         UPDATE equipamientos e
-           SET stock_disponible = e.stock_disponible + d.cantidad
+        SET stock_disponible =
+            e.stock_disponible + d.cantidad
+
         FROM detalle_alquiler_equipamiento d
-        JOIN reservas r         ON r.id_reserva = d.id_reserva
-        JOIN franjas_horarias f ON f.id_franja = r.id_franja
-        WHERE f.id_cancha = NEW.id_cancha
-          AND r.estado = 'CONFIRMADA'
-          AND r.fecha >= CURRENT_DATE
-          AND d.estado_devolucion = 'PENDIENTE'
-          AND e.id_equipamiento = d.id_equipamiento;
+
+        WHERE d.id_reserva = NEW.id_reserva
+          AND d.id_equipamiento = e.id_equipamiento
+          AND d.estado_devolucion = 'PENDIENTE';
+
+
+        UPDATE detalle_alquiler_equipamiento
+        SET estado_devolucion = 'CANCELADO'
+        WHERE id_reserva = NEW.id_reserva
+          AND estado_devolucion = 'PENDIENTE';
+
+    END IF;
+
+
+    RETURN NEW;
+
+END;
+$$;
+
+
+CREATE TRIGGER trg_liberar_equipamiento_cancelado
+AFTER UPDATE OF estado
+ON reservas
+FOR EACH ROW
+EXECUTE FUNCTION fn_liberar_equipamiento_cancelado();
+
+
+-- =====================================================================
+-- 27. MARCAR EQUIPAMIENTO NO DEVUELTO
+--
+-- Ejecutar periódicamente mediante pg_cron / Scheduled Function.
+-- =====================================================================
+
+CREATE OR REPLACE FUNCTION fn_marcar_no_devueltos()
+RETURNS void
+LANGUAGE plpgsql
+AS $$
+BEGIN
+
+    UPDATE detalle_alquiler_equipamiento
+    SET estado_devolucion = 'NO_DEVUELTO'
+
+    WHERE estado_devolucion = 'PENDIENTE'
+
+      AND fecha_devolucion_estimada IS NOT NULL
+
+      AND fecha_devolucion_estimada
+          + INTERVAL '24 hours'
+          < now();
+
+END;
+$$;
+
+
+-- =====================================================================
+-- 28. AUDITORÍA DE RESERVAS
+-- =====================================================================
+
+CREATE OR REPLACE FUNCTION fn_auditar_reserva()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+
+    v_id_usuario UUID;
+
+BEGIN
+
+    SELECT id_usuario
+    INTO v_id_usuario
+    FROM usuarios
+    WHERE id_usuario = NEW.id_persona;
+
+
+    IF TG_OP = 'INSERT'
+    THEN
+
+        INSERT INTO registros_auditoria (
+            actor_tipo,
+            id_usuario,
+            evento,
+            entidad,
+            id_entidad,
+            detalle
+        )
+        VALUES (
+            'USUARIO',
+            v_id_usuario,
+            'RESERVA_CREADA',
+            'reservas',
+            NEW.id_reserva,
+            jsonb_build_object(
+                'id_persona', NEW.id_persona,
+                'estado', NEW.estado,
+                'origen', NEW.origen
+            )
+        );
+
+
+    ELSIF TG_OP = 'UPDATE'
+          AND OLD.estado IS DISTINCT FROM NEW.estado
+    THEN
+
+        INSERT INTO registros_auditoria (
+            actor_tipo,
+            id_usuario,
+            evento,
+            entidad,
+            id_entidad,
+            detalle
+        )
+        VALUES (
+            'USUARIO',
+            v_id_usuario,
+            'RESERVA_CAMBIO_ESTADO',
+            'reservas',
+            NEW.id_reserva,
+            jsonb_build_object(
+                'estado_anterior', OLD.estado,
+                'estado_nuevo', NEW.estado
+            )
+        );
+
+    END IF;
+
+
+    RETURN NEW;
+
+END;
+$$;
+
+
+CREATE TRIGGER trg_auditar_reserva
+AFTER INSERT OR UPDATE OF estado
+ON reservas
+FOR EACH ROW
+EXECUTE FUNCTION fn_auditar_reserva();
+
+
+-- =====================================================================
+-- 29. CANCHA -> MANTENIMIENTO
+--
+-- La cancelación de las reservas se realiza mediante la lógica
+-- normal de CANCELACIÓN, que también libera equipamiento.
+-- =====================================================================
+
+CREATE OR REPLACE FUNCTION fn_cancha_a_mantenimiento()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+
+    IF NEW.estado = 'MANTENIMIENTO'
+       AND OLD.estado IS DISTINCT FROM NEW.estado
+    THEN
+
+        -- La política de cancelación voluntaria no debe aplicarse
+        -- a una cancelación provocada por el club.
+        PERFORM set_config(
+            'app.actor_rol',
+            'ADMINISTRADOR',
+            true
+        );
+
 
         UPDATE reservas r
-           SET estado = 'CANCELADA', cancelado_en = now(), actualizado_en = now()
+        SET estado = 'CANCELADA'
         FROM franjas_horarias f
         WHERE f.id_franja = r.id_franja
           AND f.id_cancha = NEW.id_cancha
           AND r.estado = 'CONFIRMADA'
           AND r.fecha >= CURRENT_DATE;
 
-        INSERT INTO registros_auditoria (actor_tipo, evento, entidad, id_entidad, detalle)
-        VALUES ('SISTEMA', 'CANCHA_A_MANTENIMIENTO', 'canchas', NEW.id_cancha,
-                jsonb_build_object('reservas_canceladas_desde', CURRENT_DATE));
+
+        INSERT INTO registros_auditoria (
+            actor_tipo,
+            evento,
+            entidad,
+            id_entidad,
+            detalle
+        )
+        VALUES (
+            'SISTEMA',
+            'CANCHA_A_MANTENIMIENTO',
+            'canchas',
+            NEW.id_cancha,
+            jsonb_build_object(
+                'fecha',
+                CURRENT_DATE
+            )
+        );
+
     END IF;
+
+
     RETURN NEW;
+
 END;
-$$ LANGUAGE plpgsql;
+$$;
 
-CREATE TRIGGER trg_cancha_a_mantenimiento
-    AFTER UPDATE ON canchas
-    FOR EACH ROW EXECUTE FUNCTION fn_cancha_a_mantenimiento();
 
--- =====================================================================
--- 12. ROW LEVEL SECURITY — postura "deny-all" desde el día uno.
---     Sin políticas todavía => acceso denegado a cualquier rol que no
---     sea service_role. El backend (NestJS) usa la service_role key de
---     Supabase, que ignora RLS. Las políticas por rol (SOCIO/GERENTE/
---     ADMINISTRADOR) se agregan en la fase de Backend (RF06.3).
--- =====================================================================
-ALTER TABLE disciplinas                   ENABLE ROW LEVEL SECURITY;
-ALTER TABLE usuarios                      ENABLE ROW LEVEL SECURITY;
-ALTER TABLE solicitudes_permiso           ENABLE ROW LEVEL SECURITY;
-ALTER TABLE no_socios                     ENABLE ROW LEVEL SECURITY;
-ALTER TABLE canchas                       ENABLE ROW LEVEL SECURITY;
-ALTER TABLE franjas_horarias              ENABLE ROW LEVEL SECURITY;
-ALTER TABLE equipamientos                 ENABLE ROW LEVEL SECURITY;
-ALTER TABLE reservas                      ENABLE ROW LEVEL SECURITY;
-ALTER TABLE detalle_alquiler_equipamiento ENABLE ROW LEVEL SECURITY;
-ALTER TABLE registros_auditoria           ENABLE ROW LEVEL SECURITY;
+CREATE TRIGGER trg_cancha_mantenimiento
+AFTER UPDATE OF estado
+ON canchas
+FOR EACH ROW
+EXECUTE FUNCTION fn_cancha_a_mantenimiento();
+
 
 -- =====================================================================
--- 13. DATOS INICIALES DE REFERENCIA
+-- 30. VISTA DE RESERVAS
+--
+-- La vista NO mejora automáticamente la velocidad.
+-- Es una capa de abstracción para consultas repetitivas.
 -- =====================================================================
-INSERT INTO disciplinas (nombre, descripcion)
+
+CREATE VIEW v_reservas_detalle AS
+SELECT
+    r.id_reserva,
+
+    r.fecha,
+
+    c.id_cancha,
+    c.nombre AS cancha_nombre,
+
+    d.id_disciplina,
+    d.nombre AS disciplina_nombre,
+
+    f.dia_semana,
+    f.hora_inicio,
+    f.hora_fin,
+
+    p.id_persona,
+    p.nombre AS persona_nombre,
+    p.apellido AS persona_apellido,
+
+    u.rol AS reservante_rol,
+    u.estado AS usuario_estado,
+
+    r.estado,
+    r.origen,
+    r.monto_total,
+
+    r.creado_en,
+    r.actualizado_en,
+    r.cancelado_en
+
+FROM reservas r
+
+JOIN franjas_horarias f
+    ON f.id_franja = r.id_franja
+
+JOIN canchas c
+    ON c.id_cancha = f.id_cancha
+
+JOIN disciplinas d
+    ON d.id_disciplina = c.id_disciplina
+
+JOIN personas p
+    ON p.id_persona = r.id_persona
+
+LEFT JOIN usuarios u
+    ON u.id_usuario = r.id_persona;
+
+
+-- =====================================================================
+-- 31. ROW LEVEL SECURITY
+-- =====================================================================
+
+ALTER TABLE personas
+ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE contactos_persona
+ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE direcciones_persona
+ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE usuarios
+ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE solicitudes_permiso
+ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE disciplinas
+ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE canchas
+ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE franjas_horarias
+ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE equipamientos
+ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE reservas
+ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE detalle_alquiler_equipamiento
+ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE registros_auditoria
+ENABLE ROW LEVEL SECURITY;
+
+
+-- =====================================================================
+-- 32. DATOS INICIALES
+-- =====================================================================
+
+INSERT INTO disciplinas (
+    nombre,
+    descripcion
+)
 VALUES
-    ('Fútbol', 'Canchas de fútbol 5/7/11'),
-    ('Tenis',  'Canchas de tenis'),
-    ('Pádel',  'Canchas de pádel')
-ON CONFLICT (nombre) DO NOTHING;
+    (
+        'Fútbol',
+        'Canchas de fútbol 5/7/11'
+    ),
+    (
+        'Tenis',
+        'Canchas de tenis'
+    ),
+    (
+        'Pádel',
+        'Canchas de pádel'
+    )
+ON CONFLICT (nombre)
+DO NOTHING;
