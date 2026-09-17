@@ -1,0 +1,7 @@
+name: Integración Continua (CI)
+
+on:
+    push:
+        branches: [ "main", "develop" ] # Se activa al subir código a estas ramas
+    pull_request:
+        branches: [ "main" ]            # Se activa cuando alguien abre un PR hacia main
