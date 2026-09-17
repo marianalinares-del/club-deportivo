@@ -1,21 +1,3 @@
 schema: spec-driven
-
-context: |
-  Tech stack: NestJS (backend), Next.js (frontend), TypeScript, PostgreSQL (Supabase)
-  API-First: los contratos de API se definen con OpenSpec antes de implementar.
-
-  Dominio: Sistema de reservas de un club deportivo.
-  Disciplinas: Tenis, Fútbol, Pádel.
-
-  Roles:
-  - Socio: se autoregistra, reserva canchas, cancela, edita datos.
-  - Gerente: gestiona socios, reservas, equipamiento, check-in en Secretaría.
-  - Administrador: todo lo del Gerente + catálogo, personal, auditoría, puede modificar reservas o reservar para un No Socio.
-  - No Socio: persona que se registró y espera autorización del Admin para ser Socio, o ex-Socio. No puede reservar por sí mismo.
-
-  Reglas de negocio:
-  - Solo un Socio puede crear una reserva.
-  - Un Admin puede reservar o modificar reservas en nombre de un No Socio.
-  - Toda reserva pertenece a exactamente un Socio o a un No Socio (cargada por Admin/Gerente).
-  - Cancelación requiere anticipación.
-  - Control de aforo por franja horaria.
+githubCopilot:
+  cloudAgent: true
