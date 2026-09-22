@@ -1,5 +1,20 @@
 {
 	"dependencies": {
-		"@fission-ai/openspec": "^1.12.0"
+		"@fission-ai/openspec": "^1.12.0",
+		"@nestjs/common": "^12.0.3",
+		"@nestjs/core": "^12.0.3",
+		"@prisma/client": "^7.10.0",
+		"reflect-metadata": "^0.2.2",
+		"rxjs": "^7.8.2"
+	},
+	"devDependencies": {
+		"@nestjs/cli": "^12.0.3",
+		"@nestjs/schematics": "^12.0.3",
+		"@types/express": "^5.0.6",
+		"prisma": "8.0.0-rc.15",
+		"typescript": "^7.0.2"
+	},
+	"scripts": {
+		"postinstall": "prisma skills sync || exit 0"
 	}
 }

@@ -34,3 +34,5 @@ yarn-error.log*
 # Supabase / misc
 supabase/.temp/
 *.sqlite
+
+.obsidian
