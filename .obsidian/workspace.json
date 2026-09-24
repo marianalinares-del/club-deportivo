@@ -1,0 +1,224 @@
+{
+  "main": {
+    "id": "14f65358a7a890fa",
+    "type": "split",
+    "children": [
+      {
+        "id": "8cecc362f9442195",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "6db3abc4369defe5",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "README.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "README"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "8b0055ba2daf8a52",
+    "type": "split",
+    "children": [
+      {
+        "id": "b3e54102e3d74105",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "3664b9a5c753587b",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Explorador de archivos"
+            }
+          },
+          {
+            "id": "916a061d17309561",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Buscar"
+            }
+          },
+          {
+            "id": "62c15943305ea2be",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-bookmark",
+              "title": "Marcadores"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "b3f257adbe6f72e8",
+    "type": "split",
+    "children": [
+      {
+        "id": "168e5c22b34b98de",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "dce5b95a2b0257d6",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "README.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Enlaces entrantes"
+            }
+          },
+          {
+            "id": "a8a13c92e735bde5",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "README.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Enlaces salientes"
+            }
+          },
+          {
+            "id": "c89712b8a3e91a16",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Etiquetas"
+            }
+          },
+          {
+            "id": "491ba3ad0ef88892",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "Todas las propiedades"
+            }
+          },
+          {
+            "id": "e6db41c0725a182f",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "README.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Esquema"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Abrir selector rápido": false,
+      "graph:Abrir vista gráfica": false,
+      "canvas:Crear nuevo lienzo": false,
+      "daily-notes:Abrir la nota de hoy": false,
+      "templates:Insertar plantilla": false,
+      "command-palette:Abrir paleta de comandos": false,
+      "bases:Crear nueva base": false
+    }
+  },
+  "active": "6db3abc4369defe5",
+  "lastOpenFiles": [
+    "docs/especificaciones.md",
+    "docs/modelo-datos.md",
+    "Requerimientos - Ing. de Software.docx",
+    "Consigna_TP_Reservas_OpenSpec_CICD (1).pdf",
+    "openspec/changes/sports-club-reservation-api/specs/pagos-auditoria-notificaciones/spec.md",
+    "openspec/changes/sports-club-reservation-api/specs/gestion-usuarios-personas/spec.md",
+    "openspec/changes/sports-club-reservation-api/specs/gestion-reservas-turnos/spec.md",
+    "openspec/changes/sports-club-reservation-api/specs/gestion-instalaciones-horarios/spec.md",
+    "openspec/changes/sports-club-reservation-api/specs/pagos-auditoria-notificaciones",
+    "openspec/changes/sports-club-reservation-api/specs/gestion-usuarios-personas",
+    "openspec/changes/sports-club-reservation-api/specs/gestion-reservas-turnos",
+    "openspec/changes/sports-club-reservation-api/specs/gestion-instalaciones-horarios",
+    "openspec/changes/sports-club-reservation-api/tasks.md",
+    "openspec/changes/sports-club-reservation-api/specs",
+    "openspec/changes/sports-club-reservation-api/proposal.md",
+    "openspec/changes/sports-club-reservation-api/design.md",
+    "openspec/changes/sports-club-reservation-api",
+    "openspec/changes/club-deportivo-reservas/tasks.md",
+    "openspec/changes/club-deportivo-reservas/specs/pagos-auditoria-notificaciones/spec.md",
+    "openspec/changes/club-deportivo-reservas/specs/gestion-usuarios-personas/spec.md",
+    "openspec/changes/club-deportivo-reservas/specs/gestion-reservas-turnos/spec.md",
+    "openspec/changes/club-deportivo-reservas/specs/gestion-instalaciones-horarios/spec.md",
+    "openspec/changes/club-deportivo-reservas/specs/pagos-auditoria-notificaciones",
+    "openspec/changes/club-deportivo-reservas/specs/gestion-usuarios-personas",
+    "openspec/changes/club-deportivo-reservas/proposal.md",
+    "openspec/changes/club-deportivo-reservas/design.md",
+    "docs/bbdd.md",
+    "README.md",
+    "AGENTS.md",
+    "backend/db/Auditoria.md"
+  ]
+}
