@@ -2,51 +2,51 @@
 
 ## 1. Gestión de Usuarios y Personas
 
-- [ ] 1.1 Configurar estructura del módulo `gestión-usuarios-personas` y verificar archivos esperados
-- [ ] 1.2 Implementar controladores de registro de usuarios según esquema SQL `persona.sql`
-- [ ] 1.3 Implementar controladores de autenticación y generación de tokens JWT
-- [ ] 1.4 Crear endpoints POST /api/v1/auth/register y POST /api/v1/auth/login
-- [ ] 1.5 Implementar middleware de autorización por rol (socio, gerente, administrador, invitado)
-- [ ] 1.6 Probar endpoints de autenticación con casos de éxito y error
-- [ ] 1.7 Implementar validación de usuarios suspendidos (bloqueo de reservas y alquileres)
-- [ ] 1.8 Probar control de roles y permisos por escenario
+- [x] 1.1 Configurar estructura del módulo `gestión-usuarios-personas` y verificar archivos esperados
+- [x] 1.2 Implementar controladores de registro de usuarios según esquema SQL `persona.sql`
+- [x] 1.3 Implementar controladores de autenticación y generación de tokens JWT
+- [x] 1.4 Crear endpoints POST /api/v1/auth/register y POST /api/v1/auth/login
+- [x] 1.5 Implementar middleware de autorización por rol (socio, gerente, administrador, invitado)
+- [x] 1.6 Probar endpoints de autenticación con casos de éxito y error (unit tests)
+- [x] 1.7 Implementar validación de usuarios suspendidos (bloqueo de reservas y alquileres)
+- [x] 1.8 Probar control de roles y permisos por escenario (unit tests)
 
 ## 2. Gestión de Instalaciones y Horarios
 
-- [ ] 2.1 Configurar estructura del módulo `gestión-instalaciones-horarios`
-- [ ] 2.2 Implementar CRUD de disciplinas deportivas (POST, GET, PUT, DELETE /api/v1/disciplines)
-- [ ] 2.3 Implementar CRUD de canchas asociadas a disciplinas (/api/v1/courts)
-- [ ] 2.4 Crear endpoints de franjas horarias (/api/v1/time-slots) con validación de disponibilidad
+- [x] 2.1 Configurar estructura del módulo `gestión-instalaciones-horarios`
+- [x] 2.2 Implementar CRUD de disciplinas deportivas (POST, GET, PUT, DELETE /api/v1/disciplines)
+- [x] 2.3 Implementar CRUD de canchas asociadas a disciplinas (/api/v1/courts)
+- [x] 2.4 Crear endpoints de franjas horarias (/api/v1/time-slots) con validación de disponibilidad
 - [ ] 2.5 Integrar validación con esquemas SQL `esquemaUltimo.sql` y `esquema-final.sql`
-- [ ] 2.6 Probar gestión de canchas y horarios con casos de borde
-- [ ] 2.7 Implementar validación de disciplinas soportadas (Tenis, Fútbol, Pádel)
-- [ ] 2.8 Probar creación de disciplinas y canchas por escenario
+- [x] 2.6 Probar gestión de canchas y horarios con casos de borde (unit tests)
+- [x] 2.7 Implementar validación de disciplinas soportadas (Tenis, Fútbol, Pádel)
+- [x] 2.8 Probar creación de disciplinas y canchas por escenario (unit tests)
 
 ## 3. Gestión de Reservas y Turnos
 
-- [ ] 3.1 Configurar estructura del módulo `gestión-reservas-turnos`
-- [ ] 3.2 Implementar creación de reservas principales (POST /api/v1/reservations)
-- [ ] 3.3 Implementar endpoints de consulta de reservas por usuario y fecha (/api/v1/reservations)
-- [ ] 3.4 Implementar alquiler de equipamiento asociado a reservas (/api/v1/equipment-rentals)
-- [ ] 3.5 Validar conflictos de tiempo y evitar dobles reservas
-- [ ] 3.6 Implementar procesamiento de devoluciones de equipamiento
-- [ ] 3.7 Implementar validación XOR de propietario de reserva (socio O invitado, nunca ambos)
-- [ ] 3.8 Probar creación de reservas y manejo de conflictos
-- [ ] 3.9 Implementar validación de stock en tiempo real para equipamiento
-- [ ] 3.10 Probar flujo de reserva con validación de stock y conflictos
+- [x] 3.1 Configurar estructura del módulo `gestión-reservas-turnos`
+- [x] 3.2 Implementar creación de reservas principales (POST /api/v1/reservations)
+- [x] 3.3 Implementar endpoints de consulta de reservas por usuario y fecha (/api/v1/reservations)
+- [x] 3.4 Implementar alquiler de equipamiento asociado a reservas (/api/v1/equipment-rentals)
+- [x] 3.5 Validar conflictos de tiempo y evitar dobles reservas
+- [x] 3.6 Implementar procesamiento de devoluciones de equipamiento
+- [x] 3.7 Implementar validación XOR de propietario de reserva (socio O invitado, nunca ambos)
+- [x] 3.8 Probar creación de reservas y manejo de conflictos (unit tests)
+- [x] 3.9 Implementar validación de stock en tiempo real para equipamiento
+- [x] 3.10 Probar flujo de reserva con validación de stock y conflictos (unit tests)
 
 ## 4. Pagos, Auditoría y Notificaciones
 
-- [ ] 4.1 Configurar estructura del módulo `pagos-auditoria-notificaciones`
-- [ ] 4.2 Implementar registro de pagos asociados a reservas (/api/v1/payments)
-- [ ] 4.3 Implementar consulta de estado de pagos (pending, completed, failed, refunded)
-- [ ] 4.4 Crear sistema de auditoría de actividades del usuario (/api/v1/audit-logs)
-- [ ] 4.5 Implementar notificaciones por email para confirmaciones de reserva
-- [ ] 4.6 Implementar notificaciones de estado de pago y recordatorios
-- [ ] 4.7 Implementar validación de stock en tiempo real para equipamiento
-- [ ] 4.8 Implementar bloqueo de usuarios suspendidos (prohibir reservas y alquileres)
-- [ ] 4.9 Probar flujo de pagos y notificaciones completas
-- [ ] 4.10 Probar bloqueo de usuario suspendido en operaciones de reserva y rental
+- [x] 4.1 Configurar estructura del módulo `pagos-auditoria-notificaciones`
+- [x] 4.2 Implementar registro de pagos asociados a reservas (/api/v1/payments)
+- [x] 4.3 Implementar consulta de estado de pagos (pending, completed, failed, refunded)
+- [x] 4.4 Crear sistema de auditoría de actividades del usuario (/api/v1/audit-logs)
+- [x] 4.5 Implementar notificaciones por email para confirmaciones de reserva
+- [x] 4.6 Implementar notificaciones de estado de pago y recordatorios
+- [x] 4.7 Implementar validación de stock en tiempo real para equipamiento
+- [x] 4.8 Implementar bloqueo de usuarios suspendidos (prohibir reservas y alquileres)
+- [x] 4.9 Probar flujo de pagos y notificaciones completas (unit tests)
+- [x] 4.10 Probar bloqueo de usuario suspendido en operaciones de reserva y rental (unit tests)
 
 ## 5. Integración y Validación
 
@@ -58,3 +58,87 @@
 - [ ] 5.6 Verificar validación XOR en operaciones de reserva
 - [ ] 5.7 Verificar bloqueo de usuario suspendido en todas las operaciones
 - [ ] 5.8 Verificar validación de stock en tiempo real en escenarios de rental
+
+## 6. Generación de la Interfaz de Usuario (SDD)
+
+> **Fase SDD:** La UI se genera a partir de los mismos archivos de especificación que el backend.  
+> **Artefactos fuente:** `docs/pantallas.md` (27 pantallas), `docs/colores.md` (tokens semánticos dual-theme).  
+> **Stack:** React 18+ / Next.js (App Router) o Vue 3 / Nuxt 3, Tailwind CSS v4, TanStack Query v5, React Hook Form + Zod.
+
+### 6.1 Configuración del proyecto frontend
+
+- [ ] 6.1.1 Inicializar proyecto frontend con Next.js (App Router) o Nuxt 3 + TypeScript 5
+- [ ] 6.1.2 Configurar Tailwind CSS v4 con `@theme` mapping a tokens semánticos de `docs/colores.md`
+- [ ] 6.1.3 Crear archivo `tokens.css` con las 13 variables CSS custom properties (light/dark) y la estrategia de theme switching (`localStorage` → `prefers-color-scheme` → toggle)
+- [ ] 6.1.4 Configurar ESLint con regla `no-color-literals` para prevenir uso de hex values crudos
+- [ ] 6.1.5 Configurar TanStack Query v5 con `QueryClientProvider` y `staleTime: 30s` por defecto
+- [ ] 6.1.6 Configurar cliente HTTP con interceptor para adjuntar JWT `Authorization: Bearer` y manejar 401 → redirect a `/login`
+- [ ] 6.1.7 Configurar sistema de rutas con middleware de autenticación por rol (leer `rol` del payload JWT)
+- [ ] 6.1.8 Crear tipos TypeScript compartidos (`Role`, `UserStatus`, `ReservationStatus`, etc.) alineados con los DTOs del backend
+
+### 6.2 Componentes transversales (Design System)
+
+- [ ] 6.2.1 Crear componente `ThemeToggle` (botón sol/luna en navbar, persiste en `localStorage`)
+- [ ] 6.2.2 Crear componente `StatusBadge` que mapea estados a tokens semánticos (🟢 success / 🟡 warning / 🔴 error / 🔵 info)
+- [ ] 6.2.3 Crear componente `Navbar` con renderizado condicional por rol (menús visibles según `SOCIO` / `GERENTE` / `ADMINISTRADOR`)
+- [ ] 6.2.4 Crear componente `Sidebar` / `AdminSidebar` para navegación en panels de gestión
+- [ ] 6.2.5 Crear componente `TimeSlotGrid` reutilizable (grilla de franjas 🟢 libre / 🔴 ocupada)
+- [ ] 6.2.6 Crear componente `ReservationCard` reutilizable (fecha, disciplina, cancha, horario, estado, monto)
+- [ ] 6.2.7 Crear componente `DataTable` con filtros, ordenamiento y paginación para paneles admin
+- [ ] 6.2.8 Crear layouts base: `PublicLayout`, `AuthenticatedLayout`, `AdminLayout`
+
+### 6.3 Pantallas públicas (Visitante) — 6 pantallas
+
+- [ ] 6.3.1 **Landing (`/`):** Hero con botones Login/Register, cards de disciplinas destacadas (`GET /disciplines`), sección "¿Cómo funciona?"
+- [ ] 6.3.2 **Registro (`/register`):** Formulario con DNI, CUIL, nombre, apellido, fecha nacimiento, email, teléfono, contraseña → `POST /auth/register`. Mostrar mensaje post-registro: *"Tu solicitud fue enviada. Un gerente la revisará pronto."*
+- [ ] 6.3.3 **Login (`/login`):** Formulario email + password → `POST /auth/login`. Redirigir según rol. Mostrar error si usuario `SUSPENDIDO`
+- [ ] 6.3.4 **Disciplinas (`/disciplines`):** Listado de cards con nombre, descripción, cantidad de canchas. Búsqueda/filtro por nombre → `GET /disciplines`
+- [ ] 6.3.5 **Detalle Disciplina (`/disciplines/:id`):** Info disciplina + listado de canchas (nombre, superficie, precio, estado) + equipamiento disponible → `GET /disciplines/:id`
+- [ ] 6.3.6 **Disponibilidad (`/availability`):** Selector disciplina → selector cancha → date picker → grilla `TimeSlotGrid` con 🟢/🔴 → `GET /time-slots/availability`
+
+### 6.4 Pantallas del Socio — 7 pantallas
+
+- [ ] 6.4.1 **Mi Perfil (`/profile`):** Datos personales (nombre, apellido, DNI, CUIL, fecha nacimiento), contactos (email, teléfono), estado de cuenta (rol, estado) → `GET /profile`
+- [ ] 6.4.2 **Editar Perfil (`/profile/edit`):** Formulario nombre, apellido, email, teléfono → `PUT /profile`. Mostrar aviso de que el contacto anterior se inactiva
+- [ ] 6.4.3 **Mis Reservas (`/my-reservations`):** Listado de `ReservationCard` con filtros por fecha y estado. Badges de estado con `StatusBadge`. Mostrar reglas: máx 2 activas, cancelación 24h anticipación → `GET /reservations?person_id={mi_id}`
+- [ ] 6.4.4 **Nueva Reserva — Step 1 (`/reservations/new`):** Selector disciplina → selector cancha → info cancha (nombre, superficie, precio) → `GET /disciplines`, `GET /courts?discipline_id=X`
+- [ ] 6.4.5 **Nueva Reserva — Step 2:** Date picker + `TimeSlotGrid` con slots libres/ocupados → `GET /time-slots/availability?court_id=X&date=YYYY-MM-DD`
+- [ ] 6.4.6 **Nueva Reserva — Step 3:** Resumen (disciplina, cancha, fecha, horario, precio) + botón Confirmar → `POST /reservations`. Mostrar errores inline: cancha en mantenimiento, conflicto horario, límite 2 activas, cuenta suspendida
+- [ ] 6.4.7 **Detalle Reserva (`/reservations/:id`):** Datos reserva + equipamiento alquilado (items con estado devolución) + pagos realizados + botón Cancelar (si aplica) → `GET /reservations/:id`
+- [ ] 6.4.8 **Alquilar Equipamiento (`/reservations/:id/rent-equipment`):** Listado equipamiento filtrado por disciplina de la cancha, campo cantidad por item, validaciones (misma disciplina, stock suficiente, no duplicado, usuario ACTIVO) → `POST /equipment-rentals`
+- [ ] 6.4.9 **Mis Pagos (`/my-payments`):** Listado de pagos con fecha, monto, reserva asociada. Filtros por rango de fechas → `GET /payments`
+
+### 6.5 Pantallas del Gerente — 7 pantallas exclusivas
+
+- [ ] 6.5.1 **Solicitudes de Permiso (`/permission-requests`):** Listado de cards con nombre, apellido, DNI, email, fecha solicitud, estado. Filtro por estado. Badges: 🟡 Pendiente / 🟢 Aprobada / 🔴 Rechazada → `GET /permission-requests`
+- [ ] 6.5.2 **Revisar Solicitud (`/permission-requests/:id`):** Datos persona + contactos + botones Aprobar / Rechazar → `PATCH /permission-requests/:id`. Mostrar efecto: aprobar activa el usuario
+- [ ] 6.5.3 **Gestión de Reservas (`/reservations/manage`):** Listado de TODAS las reservas con filtros por persona, fecha, estado. Origen visible (`AUTOGESTIONADA` / `MANUAL_GERENCIA`) → `GET /reservations`
+- [ ] 6.5.4 **Control de Reserva (`/reservations/:id/manage`):** Detalle completo + acciones según estado: Check-in (`CONFIRMADA→EN_CURSO`), Completar (`EN_CURSO→COMPLETADA`), Cancelar (`CONFIRMADA/EN_CURSO→CANCELADA`) → `PATCH /reservations/:id/status`
+- [ ] 6.5.5 **Devolución Equipamiento (`/equipment-rentals/:id/return`):** Datos alquiler + botones Devuelto / Devuelto tarde / No devuelto → `PATCH /equipment-rentals/:id/return`. Mostrar efecto en stock
+- [ ] 6.5.6 **Registrar Pago (`/payments/new`):** Selector de reservas activas + campo monto + campo concepto → `POST /payments`
+- [ ] 6.5.7 **Enviar Notificación (`/notifications/send`):** Selector destinatario + asunto + mensaje (textarea) → `POST /notifications`
+
+### 6.6 Pantallas del Administrador — 7 pantallas exclusivas
+
+- [ ] 6.6.1 **Gestión de Usuarios (`/admin/users`):** `DataTable` con nombre, email, rol, estado, fecha registro. Filtros por rol y estado. Badges con `StatusBadge` → `GET /users`
+- [ ] 6.6.2 **Gestionar Estado Usuario (`/admin/users/:id`):** Datos usuario + incumplimientos equipamiento + botones Suspender / Reactivar → `PATCH /users/:id/status`
+- [ ] 6.6.3 **CRUD Disciplinas (`/admin/disciplines`):** `DataTable` + modal crear/editar (nombre único, descripción) + eliminar con confirmación → `POST/PUT/DELETE /disciplines`
+- [ ] 6.6.4 **CRUD Canchas (`/admin/courts`):** `DataTable` con filtro por disciplina + modal crear/editar (disciplina, nombre, superficie, precio base, estado) + eliminar → `POST/PUT/DELETE /courts`
+- [ ] 6.6.5 **CRUD Franjas Horarias (`/admin/time-slots`):** `DataTable` con filtros por cancha y día + modal crear (cancha, día semana, hora inicio, hora fin) + eliminar → `POST/DELETE /time-slots`
+- [ ] 6.6.6 **Panel de Auditoría (`/admin/audit`):** `DataTable` con fecha, actor, evento, entidad, detalle. Filtros avanzados (fecha desde/hasta, usuario, entidad, evento). Límite 500 registros → `GET /audit-logs`
+- [ ] 6.6.7 **Reporte de Auditoría (`/admin/audit/report`):** Total eventos, eventos por tipo (gráfico/tabla), eventos por entidad, top 20 usuarios → `GET /audit-logs/report`
+
+### 6.7 Integración frontend-backend y validación
+
+- [ ] 6.7.1 Verificar que cada pantalla tiene su endpoint correspondiente funcionando (traceability matrix `pantallas.md` ↔ specs)
+- [ ] 6.7.2 Probar flujo completo Visitante: Landing → Disciplinas → Detalle → Disponibilidad → Registro → Login
+- [ ] 6.7.3 Probar flujo completo Socio: Login → Dashboard → Nueva Reserva (3 pasos) → Detalle Reserva → Alquilar Equipamiento → Mis Pagos → Cancelar Reserva
+- [ ] 6.7.4 Probar flujo completo Gerente: Login → Solicitudes Pendientes → Aprobar/Rechazar → Gestión Reservas → Check-in → Completar → Devolución Equipamiento → Registrar Pago
+- [ ] 6.7.5 Probar flujo completo Admin: Login → Gestión Usuarios → Suspender/Reactivar → CRUD Disciplinas → CRUD Canchas → CRUD Franjas → Auditoría → Reporte
+- [ ] 6.7.6 Validar que los badges de estado usan exclusivamente tokens semánticos (éxito, warning, error, info) en las 27 pantallas
+- [ ] 6.7.7 Validar theme switching: toggle manual + `prefers-color-scheme` + persistencia en `localStorage`
+- [ ] 6.7.8 Validar renderizado condicional por rol: menús y botones de acción coinciden con `RolesGuard` del backend
+- [ ] 6.7.9 Validar formularios: las validaciones del frontend (Zod) reflejan las restricciones de los DTOs del backend (`class-validator`)
+- [ ] 6.7.10 Prueba de responsive design en breakpoints: mobile (< 768px), tablet (768-1024px), desktop (> 1024px)
+- [ ] 6.7.11 Prueba de accesibilidad: contraste AA+ garantizado en ambos temas, navegación por teclado, atributos `aria-label` en botones de acción
+- [ ] 6.7.12 Auditoría final de cobertura: verificar que las 27 pantallas del inventario están implementadas y funcionales
