@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
   ConflictException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import {
@@ -199,29 +200,8 @@ export class ReservasService {
     }
 
     // Validar cancelación con anticipación (autogestionada)
-    if (dto.estado === 'CANCELADA' && reserva.origen === 'AUTOGESTIONADA') {
-      const inicioTurno = new Date(reserva.fecha);
-      const franja = await this.prisma.franjaHoraria.findUnique({
-        where: { id_franja: reserva.id_franja },
-      });
-
-      if (franja) {
-        const [h, m] = [
-          franja.hora_inicio.getUTCHours(),
-          franja.hora_inicio.getUTCMinutes(),
-        ];
-        inicioTurno.setHours(h, m, 0, 0);
-
-        const limiteCancelacion = new Date(
-          inicioTurno.getTime() - 24 * 60 * 60 * 1000,
-        );
-
-        if (new Date() > limiteCancelacion) {
-          throw new BadRequestException(
-            'La cancelación requiere al menos 1 día de antelación',
-          );
-        }
-      }
+    if (dto.estado === 'CANCELADA') {
+      await this.validarAnticipacionCancelacion(reserva);
     }
 
     const updateData: any = { estado: dto.estado };
@@ -240,6 +220,85 @@ export class ReservasService {
         detallesAlquiler: true,
       },
     });
+  }
+
+  /**
+   * Cancela una reserva por parte del Socio que la creó (autogestionada).
+   * Valida titularidad, estado y anticipación de 24 horas.
+   */
+  async cancelarReservaAutogestionada(id: string, userId?: string) {
+    const reserva = await this.getReserva(id);
+
+    // Verificar titularidad: solo el Socio dueño de la reserva
+    // (en el modelo, Usuario.id_usuario == Persona.id_persona de su cuenta)
+    const usuario = userId
+      ? await this.prisma.usuario.findUnique({
+          where: { id_usuario: userId },
+        })
+      : null;
+
+    if (!usuario || usuario.id_usuario !== reserva.id_persona) {
+      throw new ForbiddenException(
+        'No puedes cancelar una reserva de otro usuario',
+      );
+    }
+
+    // Un Socio solo puede cancelar reservas confirmadas
+    if (reserva.estado !== 'CONFIRMADA') {
+      throw new BadRequestException(
+        `Transición de estado inválida: ${reserva.estado} -> CANCELADA`,
+      );
+    }
+
+    // Política de anticipación (autogestionada)
+    await this.validarAnticipacionCancelacion(reserva);
+
+    return this.prisma.reserva.update({
+      where: { id_reserva: id },
+      data: { estado: 'CANCELADA', cancelado_en: new Date() },
+      include: {
+        franjaHoraria: {
+          include: { cancha: { include: { disciplina: true } } },
+        },
+        persona: true,
+        detallesAlquiler: true,
+      },
+    });
+  }
+
+  /**
+   * Valida que la cancelación de una reserva AUTOGESTIONADA cumpla
+   * la anticipación mínima de 24 horas antes del inicio de la franja.
+   */
+  private async validarAnticipacionCancelacion(reserva: any) {
+    if (reserva.origen !== 'AUTOGESTIONADA') {
+      return;
+    }
+
+    const inicioTurno = new Date(reserva.fecha);
+    const franja = await this.prisma.franjaHoraria.findUnique({
+      where: { id_franja: reserva.id_franja },
+    });
+
+    if (!franja) {
+      return;
+    }
+
+    const [h, m] = [
+      franja.hora_inicio.getUTCHours(),
+      franja.hora_inicio.getUTCMinutes(),
+    ];
+    inicioTurno.setHours(h, m, 0, 0);
+
+    const limiteCancelacion = new Date(
+      inicioTurno.getTime() - 24 * 60 * 60 * 1000,
+    );
+
+    if (new Date() > limiteCancelacion) {
+      throw new BadRequestException(
+        'La cancelación requiere al menos 1 día de antelación',
+      );
+    }
   }
 
   // ════════════════════════════════════════════════════════════════════
