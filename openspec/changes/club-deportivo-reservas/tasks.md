@@ -83,14 +83,14 @@
 
 ### 6.2 Componentes transversales (Design System)
 
-- [ ] 6.2.1 Crear componente `ThemeToggle` (botón sol/luna en navbar, persiste en `localStorage`)
-- [ ] 6.2.2 Crear componente `StatusBadge` que mapea estados a tokens semánticos (🟢 success / 🟡 warning / 🔴 error / 🔵 info)
-- [ ] 6.2.3 Crear componente `Navbar` con renderizado condicional por rol (menús visibles según `SOCIO` / `GERENTE` / `ADMINISTRADOR`)
-- [ ] 6.2.4 Crear componente `Sidebar` / `AdminSidebar` para navegación en panels de gestión
-- [ ] 6.2.5 Crear componente `TimeSlotGrid` reutilizable (grilla de franjas 🟢 libre / 🔴 ocupada)
-- [ ] 6.2.6 Crear componente `ReservationCard` reutilizable (fecha, disciplina, cancha, horario, estado, monto)
-- [ ] 6.2.7 Crear componente `DataTable` con filtros, ordenamiento y paginación para paneles admin
-- [ ] 6.2.8 Crear layouts base: `PublicLayout`, `AuthenticatedLayout`, `AdminLayout`
+- [x] 6.2.1 Crear componente `ThemeToggle` (botón sol/luna en navbar, persiste en `localStorage`)
+- [x] 6.2.2 Crear componente `StatusBadge` que mapea estados a tokens semánticos (🟢 success / 🟡 warning / 🔴 error / 🔵 info)
+- [x] 6.2.3 Crear componente `Navbar` con renderizado condicional por rol (menús visibles según `SOCIO` / `GERENTE` / `ADMINISTRADOR`)
+- [x] 6.2.4 Crear componente `Sidebar` / `AdminSidebar` para navegación en panels de gestión
+- [x] 6.2.5 Crear componente `TimeSlotGrid` reutilizable (grilla de franjas 🟢 libre / 🔴 ocupada)
+- [x] 6.2.6 Crear componente `ReservationCard` reutilizable (fecha, disciplina, cancha, horario, estado, monto)
+- [x] 6.2.7 Crear componente `DataTable` con filtros, ordenamiento y paginación para paneles admin
+- [x] 6.2.8 Crear layouts base: `PublicLayout`, `AuthenticatedLayout`, `AdminLayout`
 
 ### 6.3 Pantallas públicas (Visitante) — 6 pantallas
 
