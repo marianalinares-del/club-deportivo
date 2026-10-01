@@ -103,15 +103,15 @@
 
 ### 6.4 Pantallas del Socio — 7 pantallas
 
-- [ ] 6.4.1 **Mi Perfil (`/profile`):** Datos personales (nombre, apellido, DNI, CUIL, fecha nacimiento), contactos (email, teléfono), estado de cuenta (rol, estado) → `GET /profile`
-- [ ] 6.4.2 **Editar Perfil (`/profile/edit`):** Formulario nombre, apellido, email, teléfono → `PUT /profile`. Mostrar aviso de que el contacto anterior se inactiva
-- [ ] 6.4.3 **Mis Reservas (`/my-reservations`):** Listado de `ReservationCard` con filtros por fecha y estado. Badges de estado con `StatusBadge`. Mostrar reglas: máx 2 activas, cancelación 24h anticipación → `GET /reservations?person_id={mi_id}`
-- [ ] 6.4.4 **Nueva Reserva — Step 1 (`/reservations/new`):** Selector disciplina → selector cancha → info cancha (nombre, superficie, precio) → `GET /disciplines`, `GET /courts?discipline_id=X`
-- [ ] 6.4.5 **Nueva Reserva — Step 2:** Date picker + `TimeSlotGrid` con slots libres/ocupados → `GET /time-slots/availability?court_id=X&date=YYYY-MM-DD`
-- [ ] 6.4.6 **Nueva Reserva — Step 3:** Resumen (disciplina, cancha, fecha, horario, precio) + botón Confirmar → `POST /reservations`. Mostrar errores inline: cancha en mantenimiento, conflicto horario, límite 2 activas, cuenta suspendida
-- [ ] 6.4.7 **Detalle Reserva (`/reservations/:id`):** Datos reserva + equipamiento alquilado (items con estado devolución) + pagos realizados + botón Cancelar (si aplica: solo reservas `CONFIRMADA` propias con >24 h de anticipación) → `GET /reservations/:id`, `DELETE /reservations/:id` (cancelación autogestionada)
-- [ ] 6.4.8 **Alquilar Equipamiento (`/reservations/:id/rent-equipment`):** Listado equipamiento filtrado por disciplina de la cancha, campo cantidad por item, validaciones (misma disciplina, stock suficiente, no duplicado, usuario ACTIVO) → `POST /equipment-rentals`
-- [ ] 6.4.9 **Mis Pagos (`/my-payments`):** Listado de pagos con fecha, monto, reserva asociada. Filtros por rango de fechas → `GET /payments`
+- [x] 6.4.1 **Mi Perfil (`/profile`):** Datos personales (nombre, apellido, DNI, CUIL, fecha nacimiento), contactos (email, teléfono), estado de cuenta (rol, estado) → `GET /profile`
+- [x] 6.4.2 **Editar Perfil (`/profile/edit`):** Formulario nombre, apellido, email, teléfono → `PUT /profile`. Mostrar aviso de que el contacto anterior se inactiva
+- [x] 6.4.3 **Mis Reservas (`/my-reservations`):** Listado de `ReservationCard` con filtros por fecha y estado. Badges de estado con `StatusBadge`. Mostrar reglas: máx 2 activas, cancelación 24h anticipación → `GET /reservations?person_id={mi_id}`
+- [x] 6.4.4 **Nueva Reserva — Step 1 (`/reservations/new`):** Selector disciplina → selector cancha → info cancha (nombre, superficie, precio) → `GET /disciplines`, `GET /courts?discipline_id=X`
+- [x] 6.4.5 **Nueva Reserva — Step 2:** Date picker + `TimeSlotGrid` con slots libres/ocupados → `GET /time-slots/availability?court_id=X&date=YYYY-MM-DD`
+- [x] 6.4.6 **Nueva Reserva — Step 3:** Resumen (disciplina, cancha, fecha, horario, precio) + botón Confirmar → `POST /reservations`. Mostrar errores inline: cancha en mantenimiento, conflicto horario, límite 2 activas, cuenta suspendida
+- [x] 6.4.7 **Detalle Reserva (`/reservations/:id`):** Datos reserva + equipamiento alquilado (items con estado devolución) + pagos realizados + botón Cancelar (si aplica: solo reservas `CONFIRMADA` propias con >24 h de anticipación) → `GET /reservations/:id`, `DELETE /reservations/:id` (cancelación autogestionada)
+- [x] 6.4.8 **Alquilar Equipamiento (`/reservations/:id/rent-equipment`):** Listado equipamiento filtrado por disciplina de la cancha, campo cantidad por item, validaciones (misma disciplina, stock suficiente, no duplicado, usuario ACTIVO) → `POST /equipment-rentals`
+- [x] 6.4.9 **Mis Pagos (`/my-payments`):** Listado de pagos con fecha, monto, reserva asociada. Filtros por rango de fechas → `GET /payments`
 
 ### 6.5 Pantallas del Gerente — 7 pantallas exclusivas
 

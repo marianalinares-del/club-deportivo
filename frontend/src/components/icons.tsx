@@ -248,6 +248,94 @@ export function IconSort(props: IconProps) {
   );
 }
 
+export function IconEdit(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+    </IconBase>
+  );
+}
+
+export function IconSave(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+      <path d="M17 21v-8H7v8M7 3v5h8" />
+    </IconBase>
+  );
+}
+
+export function IconTrash(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+      <path d="M10 11v6M14 11v6" />
+    </IconBase>
+  );
+}
+
+export function IconPackage(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M16.5 9.4L7.55 4.24M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+      <path d="M3.29 7L12 12l8.71-5M12 22V12" />
+    </IconBase>
+  );
+}
+
+export function IconAlertTriangle(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+      <path d="M12 9v4M12 17h.01" />
+    </IconBase>
+  );
+}
+
+export function IconCheckCircle(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+      <path d="M22 4L12 14.01l-3-3" />
+    </IconBase>
+  );
+}
+
+export function IconXCircle(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M15 9l-6 6M9 9l6 6" />
+    </IconBase>
+  );
+}
+
+export function IconInfo(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 16v-4M12 8h.01" />
+    </IconBase>
+  );
+}
+
+export function IconFilter(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" />
+    </IconBase>
+  );
+}
+
+export function IconDollarSign(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+    </IconBase>
+  );
+}
+
 const NAV_ICONS: Record<NavIconName, (props: IconProps) => ReactNode> = {
   home: IconHome,
   trophy: IconTrophy,
