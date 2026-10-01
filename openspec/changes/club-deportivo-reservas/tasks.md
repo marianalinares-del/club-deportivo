@@ -94,12 +94,12 @@
 
 ### 6.3 Pantallas públicas (Visitante) — 6 pantallas
 
-- [ ] 6.3.1 **Landing (`/`):** Hero con botones Login/Register, cards de disciplinas destacadas (`GET /disciplines`), sección "¿Cómo funciona?"
-- [ ] 6.3.2 **Registro (`/register`):** Formulario con DNI, CUIL, nombre, apellido, fecha nacimiento, email, teléfono, contraseña → `POST /auth/register`. Mostrar mensaje post-registro: *"Tu solicitud fue enviada. Un gerente la revisará pronto."*
-- [ ] 6.3.3 **Login (`/login`):** Formulario email + password → `POST /auth/login`. Redirigir según rol. Mostrar error si usuario `SUSPENDIDO`
-- [ ] 6.3.4 **Disciplinas (`/disciplines`):** Listado de cards con nombre, descripción, cantidad de canchas. Búsqueda/filtro por nombre → `GET /disciplines`
-- [ ] 6.3.5 **Detalle Disciplina (`/disciplines/:id`):** Info disciplina + listado de canchas (nombre, superficie, precio, estado) + equipamiento disponible → `GET /disciplines/:id`
-- [ ] 6.3.6 **Disponibilidad (`/availability`):** Selector disciplina → selector cancha → date picker → grilla `TimeSlotGrid` con 🟢/🔴 → `GET /time-slots/availability`
+- [x] 6.3.1 **Landing (`/`):** Hero con botones Login/Register, cards de disciplinas destacadas (`GET /disciplines`), sección "¿Cómo funciona?"
+- [x] 6.3.2 **Registro (`/register`):** Formulario con DNI, CUIL, nombre, apellido, fecha nacimiento, email, teléfono, contraseña → `POST /auth/register`. Mostrar mensaje post-registro: *"Tu solicitud fue enviada. Un gerente la revisará pronto."*
+- [x] 6.3.3 **Login (`/login`):** Formulario email + password → `POST /auth/login`. Redirigir según rol. Mostrar error si usuario `SUSPENDIDO`
+- [x] 6.3.4 **Disciplinas (`/disciplines`):** Listado de cards con nombre, descripción, cantidad de canchas. Búsqueda/filtro por nombre → `GET /disciplines`
+- [x] 6.3.5 **Detalle Disciplina (`/disciplines/:id`):** Info disciplina + listado de canchas (nombre, superficie, precio, estado) + equipamiento disponible → `GET /disciplines/:id`
+- [x] 6.3.6 **Disponibilidad (`/availability`):** Selector disciplina → selector cancha → date picker → grilla `TimeSlotGrid` con 🟢/🔴 → `GET /time-slots/availability`
 
 ### 6.4 Pantallas del Socio — 7 pantallas
 
