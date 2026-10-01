@@ -19,7 +19,7 @@ This OpenSpec change proposes the design and implementation of a complete system
 
 - `gestion-usuarios-personas` - User registration, authentication, and profile management for members, managers, and administrators
 - `gestion-instalaciones-horarios` - Court management, disciplines, and time slot scheduling
-- `gestion-reservas-turnos` - Main reservations, equipment rental, and conflict detection
+- `gestion-reservas-turnos` - Main reservations, equipment rental, conflict detection, and self-service cancellation (`DELETE /reservations/:id` for the owning Socio with 24 h advance notice)
 - `pagos-auditoria-notificaciones` - Payment tracking, system activities, and user notifications
 
 ### Modified Capabilities
@@ -110,6 +110,7 @@ The UI layer consumes the same 4 capability specs that drive the backend:
 - Role-based access control implementing XOR reservation ownership (each reservation belongs exclusively to a socio or invitado)
 - Real-time stock validation for equipment
 - Users with suspended status cannot perform any reservation or rental
+- Self-service reservation cancellation for Socios via `DELETE /api/v1/reservations/:id` with 24 h advance notice and ownership validation
 - Database operations using PostgreSQL via Supabase
 - Frontend generated from the same spec files (SDD), ensuring 1:1 mapping between screens and API endpoints
 

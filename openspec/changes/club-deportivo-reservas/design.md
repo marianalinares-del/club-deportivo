@@ -57,6 +57,17 @@ Equipment rental requests must validate available stock in real-time before crea
 
 Users with suspended status cannot perform any reservation or equipment rental. This check occurs at API gateway level before processing any create operations.
 
+### Self-Service Reservation Cancellation
+
+Socios can cancel their own `AUTOGESTIONADA` reservations via `DELETE /api/v1/reservations/:id`, reusing the existing 24 h advance notice policy. Key design decisions:
+
+- **Endpoint**: `DELETE /api/v1/reservations/:id` (REST semantic for resource removal) — separate from the manager's `PATCH /reservations/:id/status` to keep concerns isolated.
+- **Guards**: `AuthGuard('jwt')` + `SuspendedUserGuard` (suspended Socios cannot cancel).
+- **Ownership**: Resolve `id_persona` from `usuario.id_persona` and compare with `reserva.id_persona`; mismatch → `403 Forbidden`.
+- **Reuse**: The 24 h advance notice validation is extracted to a shared private method `validarAnticipacionCancelacion()` used by both the manager `PATCH` and the Socio `DELETE`.
+- **State transition**: Only `CONFIRMADA → CANCELADA` for Socios (cannot cancel in-progress or completed reservations).
+- **Idempotency**: Cancelling an already `CANCELADA` reservation returns `400` (not `204`) for error clarity.
+
 ### UI Design System: Dual-Theme Semantic Tokens
 
 Following the SDD methodology defined in `proposal.md`, the UI is generated from the same spec files that drive the backend. The design system is defined in two core artifacts:
@@ -117,7 +128,7 @@ Visitante (6 screens)
 | 8 | Editar Perfil | `/profile/edit` | — | ✅ | ✅ | ✅ | `PUT /profile` |
 | 9 | Mis Reservas | `/my-reservations` | — | ✅ | ✅ | ✅ | `GET /reservations` |
 | 10 | Nueva Reserva | `/reservations/new` | — | ✅ | ✅ | ✅ | `POST /reservations` |
-| 11 | Detalle Reserva | `/reservations/:id` | — | ✅ | ✅ | ✅ | `GET /reservations/:id` |
+| 11 | Detalle Reserva | `/reservations/:id` | — | ✅ | ✅ | ✅ | `GET /reservations/:id`, `DELETE /reservations/:id` (cancelación autogestionada) |
 | 12 | Alquilar Equipamiento | `/reservations/:id/rent-equipment` | — | ✅ | ✅ | ✅ | `POST /equipment-rentals` |
 | 13 | Mis Pagos | `/my-payments` | — | ✅ | ✅ | ✅ | `GET /payments` |
 | 14 | Solicitudes de Permiso | `/permission-requests` | — | — | ✅ | ✅ | `GET /permission-requests` |
@@ -175,7 +186,7 @@ Every screen is traceable back to exactly one capability spec, ensuring that the
 |---|---|---|
 | `gestion-usuarios-personas` | `usuarios/` + `auth/` | Landing, Register, Login, Profile, Edit Profile, Permission Requests, Review Request, User Management, User Status (9) |
 | `gestion-instalaciones-horarios` | `instalaciones/` | Disciplines, Discipline Detail, Availability, CRUD Disciplines, CRUD Courts, CRUD Time Slots (6) |
-| `gestion-reservas-turnos` | `reservas/` | My Reservations, New Reservation, Reservation Detail, Rent Equipment, Reservation Management, Reservation Control, Equipment Return (7) |
+| `gestion-reservas-turnos` | `reservas/` | My Reservations, New Reservation, Reservation Detail (incl. self-service cancel via `DELETE`), Rent Equipment, Reservation Management, Reservation Control, Equipment Return (7) |
 | `pagos-auditoria-notificaciones` | `pagos/` | My Payments, Register Payment, Send Notification, Audit Panel, Audit Report (5) |
 
 ## Risks / Trade-offs
