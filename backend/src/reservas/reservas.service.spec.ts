@@ -1,5 +1,10 @@
 import { ReservasService } from './reservas.service';
-import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 
 describe('ReservasService', () => {
   let service: ReservasService;
@@ -194,6 +199,93 @@ describe('ReservasService', () => {
       });
 
       await expect(service.crearAlquiler(alquilerDto)).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('cancelarReservaAutogestionada', () => {
+    const reservaConfirmada = {
+      id_reserva: 'uuid-reserva-1',
+      id_persona: 'uuid-persona-1',
+      id_franja: 'uuid-franja-1',
+      fecha: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
+      origen: 'AUTOGESTIONADA',
+      estado: 'CONFIRMADA',
+    };
+
+    it('debe cancelar la reserva autogestionada con anticipación suficiente', async () => {
+      mockPrisma.reserva.findUnique.mockResolvedValue(reservaConfirmada);
+      mockPrisma.usuario.findUnique.mockResolvedValue({
+        id_usuario: 'uuid-persona-1',
+      });
+      mockPrisma.franjaHoraria.findUnique.mockResolvedValue({
+        id_franja: 'uuid-franja-1',
+        hora_inicio: new Date('1970-01-01T12:00:00Z'),
+      });
+      mockPrisma.reserva.update.mockResolvedValue({
+        ...reservaConfirmada,
+        estado: 'CANCELADA',
+      });
+
+      const result = await service.cancelarReservaAutogestionada(
+        'uuid-reserva-1',
+        'uuid-persona-1',
+      );
+
+      expect(mockPrisma.reserva.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ estado: 'CANCELADA' }),
+        }),
+      );
+      expect(result).toHaveProperty('estado', 'CANCELADA');
+    });
+
+    it('debe rechazar si la reserva pertenece a otro usuario', async () => {
+      mockPrisma.reserva.findUnique.mockResolvedValue(reservaConfirmada);
+      mockPrisma.usuario.findUnique.mockResolvedValue({
+        id_usuario: 'uuid-otro',
+      });
+
+      await expect(
+        service.cancelarReservaAutogestionada('uuid-reserva-1', 'uuid-otro'),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('debe rechazar si la reserva no está CONFIRMADA', async () => {
+      mockPrisma.reserva.findUnique.mockResolvedValue({
+        ...reservaConfirmada,
+        estado: 'CANCELADA',
+      });
+      mockPrisma.usuario.findUnique.mockResolvedValue({
+        id_usuario: 'uuid-persona-1',
+      });
+
+      await expect(
+        service.cancelarReservaAutogestionada(
+          'uuid-reserva-1',
+          'uuid-persona-1',
+        ),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('debe rechazar si falta anticipación (menos de 24 horas)', async () => {
+      mockPrisma.reserva.findUnique.mockResolvedValue({
+        ...reservaConfirmada,
+        fecha: new Date(Date.now() + 3 * 60 * 60 * 1000),
+      });
+      mockPrisma.usuario.findUnique.mockResolvedValue({
+        id_usuario: 'uuid-persona-1',
+      });
+      mockPrisma.franjaHoraria.findUnique.mockResolvedValue({
+        id_franja: 'uuid-franja-1',
+        hora_inicio: new Date('1970-01-01T12:00:00Z'),
+      });
+
+      await expect(
+        service.cancelarReservaAutogestionada(
+          'uuid-reserva-1',
+          'uuid-persona-1',
+        ),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 });
