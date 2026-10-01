@@ -1,0 +1,32 @@
+# Blueprint para desplegar el backend (NestJS) en Render.
+# Uso: en Render, "New" → "Blueprint" → seleccionar este repositorio.
+# Las variables marcadas con sync: false se cargan desde el dashboard (son secretas).
+services:
+  - type: web
+    name: club-deportivo-api
+    runtime: node
+    plan: free
+    region: oregon
+    branch: main
+    buildCommand: >-
+      pnpm install --frozen-lockfile &&
+      pnpm --filter club-deportivo-backend run prisma:generate &&
+      pnpm --filter club-deportivo-backend run build
+    startCommand: node backend/dist/main.js
+    healthCheckPath: /api/v1/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRATION
+        value: 24h
+      # Pooler de Supabase en IPv4 (el host directo db.[REF] no resuelve en IPv4)
+      - key: DATABASE_URL
+        sync: false
+      # Dominio del frontend en Vercel
+      - key: CORS_ORIGINS
+        sync: false

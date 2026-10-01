@@ -8,12 +8,31 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 
+/**
+ * Orígenes permitidos para CORS.
+ * Se configuran con CORS_ORIGINS (lista separada por comas) para poder
+ * habilitar el frontend desplegado (ej. Vercel) sin tocar el código.
+ */
+function corsOrigins(): string[] {
+  const configured = process.env.CORS_ORIGINS?.trim();
+
+  if (!configured) {
+    return ['http://localhost:3000', 'http://localhost:3001'];
+  }
+
+  return configured
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+}
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Habilitar CORS para desarrollo
+  // Habilitar CORS para los orígenes configurados
+  const origins = corsOrigins();
   app.enableCors({
-    origin: ['http://localhost:3000', 'http://localhost:3001'],
+    origin: origins,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
@@ -29,9 +48,12 @@ async function bootstrap() {
 
   // Prefijo global (los controladores ya definen api/v1)
   const port = process.env.PORT || 3000;
-  await app.listen(port);
+
+  // 0.0.0.0 para que funcione en contenedores/plataformas de deploy
+  await app.listen(port, '0.0.0.0');
 
   console.log(`🚀 Backend corriendo en http://localhost:${port}`);
+  console.log(`🔗 Orígenes CORS permitidos: ${origins.join(', ')}`);
   console.log(`📋 Endpoints disponibles:`);
   console.log(`   POST   /api/v1/auth/register`);
   console.log(`   POST   /api/v1/auth/login`);
