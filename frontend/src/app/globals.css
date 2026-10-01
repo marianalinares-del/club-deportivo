@@ -1,0 +1,90 @@
+@import "tailwindcss";
+
+/* ============================================================
+   Club Deportivo — Design Tokens
+   Basado en docs/colores.md
+   ============================================================ */
+
+/* --- Modo Claro: "Cancha de Día" (default) --- */
+:root {
+  --color-primary: #0E9F6E;
+  --color-primary-hover: #0B7A55;
+  --color-secondary: #0F172A;
+  --color-accent: #F59E0B;
+  --color-background: #F8FAFC;
+  --color-surface: #FFFFFF;
+  --color-surface-2: #F1F5F9;
+  --color-text-primary: #0F172A;
+  --color-text-secondary: #64748B;
+  --color-border: #E2E8F0;
+  --color-success: #16A34A;
+  --color-warning: #F59E0B;
+  --color-error: #EF4444;
+  --color-info: #3B82F6;
+}
+
+/* --- Modo Oscuro: "Cancha de Noche" --- */
+.dark,
+[data-theme="dark"] {
+  --color-primary: #22C55E;
+  --color-primary-hover: #4ADE80;
+  --color-secondary: #60A5FA;
+  --color-accent: #FBBF24;
+  --color-background: #070F1E;
+  --color-surface: #111F35;
+  --color-surface-2: #1A2E4D;
+  --color-text-primary: #F1F5F9;
+  --color-text-secondary: #94A3B8;
+  --color-border: #1E3A5F;
+  --color-success: #4ADE80;
+  --color-warning: #FBBF24;
+  --color-error: #F87171;
+  --color-info: #60A5FA;
+}
+
+/* prefers-color-scheme: dark (sin toggle manual) */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-primary: #22C55E;
+    --color-primary-hover: #4ADE80;
+    --color-secondary: #60A5FA;
+    --color-accent: #FBBF24;
+    --color-background: #070F1E;
+    --color-surface: #111F35;
+    --color-surface-2: #1A2E4D;
+    --color-text-primary: #F1F5F9;
+    --color-text-secondary: #94A3B8;
+    --color-border: #1E3A5F;
+    --color-success: #4ADE80;
+    --color-warning: #FBBF24;
+    --color-error: #F87171;
+    --color-info: #60A5FA;
+  }
+}
+
+/* --- Tailwind v4 @theme --- */
+@theme inline {
+  --color-primary: var(--color-primary);
+  --color-primary-hover: var(--color-primary-hover);
+  --color-secondary: var(--color-secondary);
+  --color-accent: var(--color-accent);
+  --color-background: var(--color-background);
+  --color-surface: var(--color-surface);
+  --color-surface-2: var(--color-surface-2);
+  --color-text-primary: var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-border: var(--color-border);
+  --color-success: var(--color-success);
+  --color-warning: var(--color-warning);
+  --color-error: var(--color-error);
+  --color-info: var(--color-info);
+  --font-sans: var(--font-geist-sans, system-ui, sans-serif);
+  --font-mono: var(--font-geist-mono, monospace);
+}
+
+/* --- Base --- */
+body {
+  background: var(--color-background);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+}

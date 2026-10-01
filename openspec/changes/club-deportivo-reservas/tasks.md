@@ -34,6 +34,11 @@
 - [x] 3.8 Probar creación de reservas y manejo de conflictos (unit tests)
 - [x] 3.9 Implementar validación de stock en tiempo real para equipamiento
 - [x] 3.10 Probar flujo de reserva con validación de stock y conflictos (unit tests)
+- [ ] 3.11 Implementar endpoint `DELETE /api/v1/reservations/:id` para cancelación autogestionada del Socio
+- [ ] 3.12 Extraer validación de anticipación (`validarAnticipacionCancelacion`) para reuso en `PATCH` (gerentes) y `DELETE` (socio)
+- [ ] 3.13 Implementar validación de titularidad: solo el Socio dueño de la reserva puede cancelarla (403 si es ajena)
+- [ ] 3.14 Validar transición de estado: solo `CONFIRMADA → CANCELADA` para el Socio (400 si no está CONFIRMADA)
+- [ ] 3.15 Probar cancelación autogestionada: éxito, reserva ajena (403), sin anticipación (400), estado no CONFIRMADA (400)
 
 ## 4. Pagos, Auditoría y Notificaciones
 
@@ -67,14 +72,14 @@
 
 ### 6.1 Configuración del proyecto frontend
 
-- [ ] 6.1.1 Inicializar proyecto frontend con Next.js (App Router) o Nuxt 3 + TypeScript 5
-- [ ] 6.1.2 Configurar Tailwind CSS v4 con `@theme` mapping a tokens semánticos de `docs/colores.md`
-- [ ] 6.1.3 Crear archivo `tokens.css` con las 13 variables CSS custom properties (light/dark) y la estrategia de theme switching (`localStorage` → `prefers-color-scheme` → toggle)
-- [ ] 6.1.4 Configurar ESLint con regla `no-color-literals` para prevenir uso de hex values crudos
-- [ ] 6.1.5 Configurar TanStack Query v5 con `QueryClientProvider` y `staleTime: 30s` por defecto
-- [ ] 6.1.6 Configurar cliente HTTP con interceptor para adjuntar JWT `Authorization: Bearer` y manejar 401 → redirect a `/login`
-- [ ] 6.1.7 Configurar sistema de rutas con middleware de autenticación por rol (leer `rol` del payload JWT)
-- [ ] 6.1.8 Crear tipos TypeScript compartidos (`Role`, `UserStatus`, `ReservationStatus`, etc.) alineados con los DTOs del backend
+- [x] 6.1.1 Inicializar proyecto frontend con Next.js (App Router) o Nuxt 3 + TypeScript 5
+- [x] 6.1.2 Configurar Tailwind CSS v4 con `@theme` mapping a tokens semánticos de `docs/colores.md`
+- [x] 6.1.3 Crear archivo `tokens.css` con las 13 variables CSS custom properties (light/dark) y la estrategia de theme switching (`localStorage` → `prefers-color-scheme` → toggle)
+- [x] 6.1.4 Configurar ESLint con regla `no-color-literals` para prevenir uso de hex values crudos
+- [x] 6.1.5 Configurar TanStack Query v5 con `QueryClientProvider` y `staleTime: 30s` por defecto
+- [x] 6.1.6 Configurar cliente HTTP con interceptor para adjuntar JWT `Authorization: Bearer` y manejar 401 → redirect a `/login`
+- [x] 6.1.7 Configurar sistema de rutas con middleware de autenticación por rol (leer `rol` del payload JWT)
+- [x] 6.1.8 Crear tipos TypeScript compartidos (`Role`, `UserStatus`, `ReservationStatus`, etc.) alineados con los DTOs del backend
 
 ### 6.2 Componentes transversales (Design System)
 
@@ -104,7 +109,7 @@
 - [ ] 6.4.4 **Nueva Reserva — Step 1 (`/reservations/new`):** Selector disciplina → selector cancha → info cancha (nombre, superficie, precio) → `GET /disciplines`, `GET /courts?discipline_id=X`
 - [ ] 6.4.5 **Nueva Reserva — Step 2:** Date picker + `TimeSlotGrid` con slots libres/ocupados → `GET /time-slots/availability?court_id=X&date=YYYY-MM-DD`
 - [ ] 6.4.6 **Nueva Reserva — Step 3:** Resumen (disciplina, cancha, fecha, horario, precio) + botón Confirmar → `POST /reservations`. Mostrar errores inline: cancha en mantenimiento, conflicto horario, límite 2 activas, cuenta suspendida
-- [ ] 6.4.7 **Detalle Reserva (`/reservations/:id`):** Datos reserva + equipamiento alquilado (items con estado devolución) + pagos realizados + botón Cancelar (si aplica) → `GET /reservations/:id`
+- [ ] 6.4.7 **Detalle Reserva (`/reservations/:id`):** Datos reserva + equipamiento alquilado (items con estado devolución) + pagos realizados + botón Cancelar (si aplica: solo reservas `CONFIRMADA` propias con >24 h de anticipación) → `GET /reservations/:id`, `DELETE /reservations/:id` (cancelación autogestionada)
 - [ ] 6.4.8 **Alquilar Equipamiento (`/reservations/:id/rent-equipment`):** Listado equipamiento filtrado por disciplina de la cancha, campo cantidad por item, validaciones (misma disciplina, stock suficiente, no duplicado, usuario ACTIVO) → `POST /equipment-rentals`
 - [ ] 6.4.9 **Mis Pagos (`/my-payments`):** Listado de pagos con fecha, monto, reserva asociada. Filtros por rango de fechas → `GET /payments`
 
@@ -132,7 +137,7 @@
 
 - [ ] 6.7.1 Verificar que cada pantalla tiene su endpoint correspondiente funcionando (traceability matrix `pantallas.md` ↔ specs)
 - [ ] 6.7.2 Probar flujo completo Visitante: Landing → Disciplinas → Detalle → Disponibilidad → Registro → Login
-- [ ] 6.7.3 Probar flujo completo Socio: Login → Dashboard → Nueva Reserva (3 pasos) → Detalle Reserva → Alquilar Equipamiento → Mis Pagos → Cancelar Reserva
+- [ ] 6.7.3 Probar flujo completo Socio: Login → Dashboard → Nueva Reserva (3 pasos) → Detalle Reserva → Alquilar Equipamiento → Mis Pagos → Cancelar Reserva (autogestionada, `DELETE /reservations/:id`)
 - [ ] 6.7.4 Probar flujo completo Gerente: Login → Solicitudes Pendientes → Aprobar/Rechazar → Gestión Reservas → Check-in → Completar → Devolución Equipamiento → Registrar Pago
 - [ ] 6.7.5 Probar flujo completo Admin: Login → Gestión Usuarios → Suspender/Reactivar → CRUD Disciplinas → CRUD Canchas → CRUD Franjas → Auditoría → Reporte
 - [ ] 6.7.6 Validar que los badges de estado usan exclusivamente tokens semánticos (éxito, warning, error, info) en las 27 pantallas
