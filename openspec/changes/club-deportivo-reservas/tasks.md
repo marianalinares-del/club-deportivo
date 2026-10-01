@@ -115,13 +115,13 @@
 
 ### 6.5 Pantallas del Gerente — 7 pantallas exclusivas
 
-- [ ] 6.5.1 **Solicitudes de Permiso (`/permission-requests`):** Listado de cards con nombre, apellido, DNI, email, fecha solicitud, estado. Filtro por estado. Badges: 🟡 Pendiente / 🟢 Aprobada / 🔴 Rechazada → `GET /permission-requests`
-- [ ] 6.5.2 **Revisar Solicitud (`/permission-requests/:id`):** Datos persona + contactos + botones Aprobar / Rechazar → `PATCH /permission-requests/:id`. Mostrar efecto: aprobar activa el usuario
-- [ ] 6.5.3 **Gestión de Reservas (`/reservations/manage`):** Listado de TODAS las reservas con filtros por persona, fecha, estado. Origen visible (`AUTOGESTIONADA` / `MANUAL_GERENCIA`) → `GET /reservations`
-- [ ] 6.5.4 **Control de Reserva (`/reservations/:id/manage`):** Detalle completo + acciones según estado: Check-in (`CONFIRMADA→EN_CURSO`), Completar (`EN_CURSO→COMPLETADA`), Cancelar (`CONFIRMADA/EN_CURSO→CANCELADA`) → `PATCH /reservations/:id/status`
-- [ ] 6.5.5 **Devolución Equipamiento (`/equipment-rentals/:id/return`):** Datos alquiler + botones Devuelto / Devuelto tarde / No devuelto → `PATCH /equipment-rentals/:id/return`. Mostrar efecto en stock
-- [ ] 6.5.6 **Registrar Pago (`/payments/new`):** Selector de reservas activas + campo monto + campo concepto → `POST /payments`
-- [ ] 6.5.7 **Enviar Notificación (`/notifications/send`):** Selector destinatario + asunto + mensaje (textarea) → `POST /notifications`
+- [x] 6.5.1 **Solicitudes de Permiso (`/permission-requests`):** Listado de cards con nombre, apellido, DNI, email, fecha solicitud, estado. Filtro por estado. Badges: 🟡 Pendiente / 🟢 Aprobada / 🔴 Rechazada → `GET /permission-requests`
+- [x] 6.5.2 **Revisar Solicitud (`/permission-requests/:id`):** Datos persona + contactos + botones Aprobar / Rechazar → `PATCH /permission-requests/:id`. Mostrar efecto: aprobar activa el usuario
+- [x] 6.5.3 **Gestión de Reservas (`/reservations/manage`):** Listado de TODAS las reservas con filtros por persona, fecha, estado. Origen visible (`AUTOGESTIONADA` / `MANUAL_GERENCIA`) → `GET /reservations`
+- [x] 6.5.4 **Control de Reserva (`/reservations/:id/manage`):** Detalle completo + acciones según estado: Check-in (`CONFIRMADA→EN_CURSO`), Completar (`EN_CURSO→COMPLETADA`), Cancelar (`CONFIRMADA/EN_CURSO→CANCELADA`) → `PATCH /reservations/:id/status`
+- [x] 6.5.5 **Devolución Equipamiento (`/equipment-rentals/:id/return`):** Datos alquiler + botones Devuelto / Devuelto tarde / No devuelto → `PATCH /equipment-rentals/:id/return`. Mostrar efecto en stock
+- [x] 6.5.6 **Registrar Pago (`/payments/new`):** Selector de reservas activas + campo monto + campo concepto → `POST /payments`
+- [x] 6.5.7 **Enviar Notificación (`/notifications/send`):** Selector destinatario + asunto + mensaje (textarea) → `POST /notifications`
 
 ### 6.6 Pantallas del Administrador — 7 pantallas exclusivas
 
