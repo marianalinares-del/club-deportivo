@@ -125,13 +125,13 @@
 
 ### 6.6 Pantallas del Administrador — 7 pantallas exclusivas
 
-- [ ] 6.6.1 **Gestión de Usuarios (`/admin/users`):** `DataTable` con nombre, email, rol, estado, fecha registro. Filtros por rol y estado. Badges con `StatusBadge` → `GET /users`
-- [ ] 6.6.2 **Gestionar Estado Usuario (`/admin/users/:id`):** Datos usuario + incumplimientos equipamiento + botones Suspender / Reactivar → `PATCH /users/:id/status`
-- [ ] 6.6.3 **CRUD Disciplinas (`/admin/disciplines`):** `DataTable` + modal crear/editar (nombre único, descripción) + eliminar con confirmación → `POST/PUT/DELETE /disciplines`
-- [ ] 6.6.4 **CRUD Canchas (`/admin/courts`):** `DataTable` con filtro por disciplina + modal crear/editar (disciplina, nombre, superficie, precio base, estado) + eliminar → `POST/PUT/DELETE /courts`
-- [ ] 6.6.5 **CRUD Franjas Horarias (`/admin/time-slots`):** `DataTable` con filtros por cancha y día + modal crear (cancha, día semana, hora inicio, hora fin) + eliminar → `POST/DELETE /time-slots`
-- [ ] 6.6.6 **Panel de Auditoría (`/admin/audit`):** `DataTable` con fecha, actor, evento, entidad, detalle. Filtros avanzados (fecha desde/hasta, usuario, entidad, evento). Límite 500 registros → `GET /audit-logs`
-- [ ] 6.6.7 **Reporte de Auditoría (`/admin/audit/report`):** Total eventos, eventos por tipo (gráfico/tabla), eventos por entidad, top 20 usuarios → `GET /audit-logs/report`
+- [x] 6.6.1 **Gestión de Usuarios (`/admin/users`):** `DataTable` con nombre, email, rol, estado, fecha registro. Filtros por rol y estado. Badges con `StatusBadge` → `GET /users`
+- [x] 6.6.2 **Gestionar Estado Usuario (`/admin/users/:id`):** Datos usuario + incumplimientos equipamiento + botones Suspender / Reactivar → `PATCH /users/:id/status`
+- [x] 6.6.3 **CRUD Disciplinas (`/admin/disciplines`):** `DataTable` + modal crear/editar (nombre único, descripción) + eliminar con confirmación → `POST/PUT/DELETE /disciplines`
+- [x] 6.6.4 **CRUD Canchas (`/admin/courts`):** `DataTable` con filtro por disciplina + modal crear/editar (disciplina, nombre, superficie, precio base, estado) + eliminar → `POST/PUT/DELETE /courts`
+- [x] 6.6.5 **CRUD Franjas Horarias (`/admin/time-slots`):** `DataTable` con filtros por cancha y día + modal crear (cancha, día semana, hora inicio, hora fin) + eliminar → `POST/DELETE /time-slots`
+- [x] 6.6.6 **Panel de Auditoría (`/admin/audit`):** `DataTable` con fecha, actor, evento, entidad, detalle. Filtros avanzados (fecha desde/hasta, usuario, entidad, evento). Límite 500 registros → `GET /audit-logs`
+- [x] 6.6.7 **Reporte de Auditoría (`/admin/audit/report`):** Total eventos, eventos por tipo (gráfico/tabla), eventos por entidad, top 20 usuarios → `GET /audit-logs/report`
 
 ### 6.7 Integración frontend-backend y validación
 
