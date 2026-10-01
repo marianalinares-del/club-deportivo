@@ -8,6 +8,7 @@ onlyBuiltDependencies:
   - '@prisma/engines'
   - esbuild
   - msgpackr-extract
+  - unrs-resolver
   - workerd
 
 allowBuilds:
@@ -16,4 +17,5 @@ allowBuilds:
   esbuild: true
   msgpackr-extract: true
   prisma: true
+  unrs-resolver: true
   workerd: true
