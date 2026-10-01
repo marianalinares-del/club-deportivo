@@ -48,16 +48,20 @@ export interface LoginRequest {
 }
 
 export interface AuthResponse {
-  token: string;
+  token?: string;
+  access_token?: string;
   usuario: UserProfile;
 }
 
 export interface UserProfile {
-  id: string;
+  id?: string;
+  id_usuario?: string;
   email: string;
   rol: Role;
   estado: UserStatus;
-  persona: Persona;
+  nombre?: string;
+  apellido?: string;
+  persona?: Persona;
 }
 
 // ============================================================
@@ -65,17 +69,40 @@ export interface UserProfile {
 // ============================================================
 
 export interface Persona {
-  id: string;
+  id?: string;
+  id_persona?: string;
   nombre: string;
   apellido: string;
   dni: string;
   cuil?: string;
   fecha_nacimiento?: string;
-  email: string;
+  email?: string;
   telefono?: string;
-  estado: "ACTIVO" | "INACTIVO";
-  creado_en: string;
-  actualizado_en: string;
+  estado?: "ACTIVO" | "INACTIVO";
+  creado_en?: string;
+  actualizado_en?: string;
+}
+
+export interface ContactoPerfil {
+  tipo: string;
+  tipo_contacto?: string;
+  valor: string;
+  valor_contacto?: string;
+}
+
+export interface PerfilUsuario {
+  id?: string;
+  id_usuario: string;
+  nombre: string;
+  apellido: string;
+  dni: string;
+  cuil?: string | null;
+  fecha_nacimiento?: string | null;
+  rol: Role;
+  estado: UserStatus;
+  email?: string;
+  telefono?: string;
+  contactos: ContactoPerfil[];
 }
 
 export interface UpdatePerfilRequest {
@@ -91,12 +118,15 @@ export interface UpdatePerfilRequest {
 
 export interface Disciplina {
   id: string;
+  id_disciplina?: string;
   nombre: string;
   descripcion?: string;
-  estado: "ACTIVO" | "INACTIVO";
+  estado?: "ACTIVO" | "INACTIVO";
   canchas?: Cancha[];
-  creado_en: string;
-  actualizado_en: string;
+  equipamientos?: Equipamiento[];
+  _count?: { canchas: number };
+  creado_en?: string;
+  actualizado_en?: string;
 }
 
 export interface CreateDisciplinaRequest {
@@ -111,14 +141,15 @@ export interface UpdateDisciplinaRequest {
 
 export interface Cancha {
   id: string;
+  id_cancha?: string;
   id_disciplina: string;
   nombre: string;
   superficie?: string;
   precio_base: number;
   estado: CourtStatus;
   disciplina?: Disciplina;
-  creado_en: string;
-  actualizado_en: string;
+  creado_en?: string;
+  actualizado_en?: string;
 }
 
 export interface CreateCanchaRequest {
@@ -141,14 +172,15 @@ export interface UpdateCanchaRequest {
 
 export interface FranjaHoraria {
   id: string;
+  id_franja?: string;
   id_cancha: string;
   dia_semana: number; // 0=Domingo, 1=Lunes, ..., 6=Sábado
   hora_inicio: string; // HH:mm
   hora_fin: string; // HH:mm
-  estado: "ACTIVO" | "INACTIVO";
+  estado?: "ACTIVO" | "INACTIVO";
   cancha?: Cancha;
-  creado_en: string;
-  actualizado_en: string;
+  creado_en?: string;
+  actualizado_en?: string;
 }
 
 export interface CreateFranjaHorariaRequest {
@@ -171,17 +203,21 @@ export interface TimeSlotAvailability {
 
 export interface Reserva {
   id: string;
+  id_reserva?: string;
   id_franja: string;
   id_persona: string;
   fecha: string;
   estado: ReservationStatus;
   origen: ReservationOrigin;
+  monto_total?: number;
   franja?: FranjaHoraria;
+  franjaHoraria?: FranjaHoraria;
   persona?: Persona;
   alquileres?: AlquilerEquipamiento[];
+  detallesAlquiler?: AlquilerEquipamiento[];
   pagos?: Pago[];
-  creado_en: string;
-  actualizado_en: string;
+  creado_en?: string;
+  actualizado_en?: string;
 }
 
 export interface CreateReservaRequest {
@@ -201,27 +237,32 @@ export interface UpdateReservaEstadoRequest {
 
 export interface Equipamiento {
   id: string;
+  id_equipamiento?: string;
   id_disciplina: string;
   nombre: string;
   descripcion?: string;
   stock_total: number;
   stock_disponible: number;
-  estado: "ACTIVO" | "INACTIVO";
+  precio_alquiler?: number;
+  estado?: "ACTIVO" | "INACTIVO";
   disciplina?: Disciplina;
-  creado_en: string;
-  actualizado_en: string;
+  creado_en?: string;
+  actualizado_en?: string;
 }
 
 export interface AlquilerEquipamiento {
   id: string;
+  id_detalle?: string;
   id_reserva: string;
   id_equipamiento: string;
   cantidad: number;
-  estado_devolucion: EquipmentReturnStatus;
+  precio_unitario?: number;
+  subtotal?: number;
+  estado_devolucion: EquipmentReturnStatus | "PENDIENTE";
   equipamiento?: Equipamiento;
   reserva?: Reserva;
-  creado_en: string;
-  actualizado_en: string;
+  creado_en?: string;
+  actualizado_en?: string;
 }
 
 export interface CreateAlquilerEquipamientoRequest {
@@ -240,13 +281,16 @@ export interface UpdateDevolucionRequest {
 
 export interface Pago {
   id: string;
-  id_reserva: string;
+  id_registro?: string;
+  id_reserva?: string;
+  id_entidad?: string;
   monto: number;
   estado: PaymentStatus;
   metodo_pago?: string;
+  evento?: string;
   reserva?: Reserva;
   creado_en: string;
-  actualizado_en: string;
+  actualizado_en?: string;
 }
 
 export interface CreatePagoRequest {
