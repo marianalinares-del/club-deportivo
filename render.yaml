@@ -9,7 +9,7 @@ services:
     region: oregon
     branch: main
     buildCommand: >-
-      pnpm install --frozen-lockfile &&
+      pnpm install --frozen-lockfile --prod=false &&
       pnpm --filter club-deportivo-backend run prisma:generate &&
       pnpm --filter club-deportivo-backend run build
     startCommand: node backend/dist/main.js
@@ -18,8 +18,7 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: 3000
+      # PORT lo inyecta Render; el backend escucha en 0.0.0.0
       - key: JWT_SECRET
         generateValue: true
       - key: JWT_EXPIRATION
