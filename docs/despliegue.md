@@ -30,6 +30,8 @@ Resumen de cómo desplegar frontend (Vercel) y backend (Node) para que se hablen
 
 Plataformas sugeridas: Render, Railway o Fly.io (con Node 20+).
 
+**Camino rápido con Render:** el repo incluye el blueprint [`render.yaml`](../render.yaml). En Render → *New* → *Blueprint* → seleccionar el repositorio, y completar las dos variables `sync: false` (`DATABASE_URL` y `CORS_ORIGINS`). El blueprint ya define build, start y health check.
+
 **Variables de entorno obligatorias:**
 
 | Clave | Notas |
@@ -41,15 +43,19 @@ Plataformas sugeridas: Render, Railway o Fly.io (con Node 20+).
 | `CORS_ORIGINS` | Dominio del frontend, separado por comas: `https://club-deportivo-phi.vercel.app` |
 | `SUPABASE_*` | Solo si el backend consume Supabase Auth/Functions |
 
-Build command: `pnpm --filter club-deportivo-backend run build` (o `cd backend && pnpm install && pnpm run build`).
+> `prisma generate` es obligatorio antes de compilar (el cliente generado no viene en el repo): por eso el build command del blueprint lo corre explícitamente.
+
+Build command: `pnpm install --frozen-lockfile && pnpm --filter club-deportivo-backend run prisma:generate && pnpm --filter club-deportivo-backend run build`.
 Start command: `node backend/dist/main.js`.
+
+**Health check:** `GET /api/v1/health` (sin autenticación) devuelve `{ status: 'ok' }` y sirve como health check de la plataforma y para confirmar que el deploy está vivo.
 
 ## 3. Checklist cuando el frontend da 404
 
 1. ¿`Root Directory` = `frontend` en Vercel?
 2. ¿El build del deployment terminó en **Ready** (tab Deployments)?
 3. ¿La variable `NEXT_PUBLIC_API_URL` está cargada en **Production** y se redeployó después de cambiarla?
-4. ¿El backend responde? Un `GET /api/v1/disciplines` que devuelve `401`/`200` (y no `404`) confirma que el backend está vivo.
+4. ¿El backend responde? `GET /api/v1/health` debe devolver `200 { "status": "ok" }`; un `GET /api/v1/disciplines` que devuelve datos (y no `404`) confirma además que llegó a Supabase.
 
 ## 4. Checklist cuando el frontend carga pero no hay datos
 
