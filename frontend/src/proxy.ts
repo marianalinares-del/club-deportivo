@@ -25,7 +25,7 @@ const ROLE_ROUTES: Record<string, string[]> = {
   ADMINISTRADOR: ["/admin"],
 };
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Permitir rutas públicas y archivos estáticos
