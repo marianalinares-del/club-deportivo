@@ -135,15 +135,15 @@
 
 ### 6.7 Integración frontend-backend y validación
 
-- [ ] 6.7.1 Verificar que cada pantalla tiene su endpoint correspondiente funcionando (traceability matrix `pantallas.md` ↔ specs)
-- [ ] 6.7.2 Probar flujo completo Visitante: Landing → Disciplinas → Detalle → Disponibilidad → Registro → Login
-- [ ] 6.7.3 Probar flujo completo Socio: Login → Dashboard → Nueva Reserva (3 pasos) → Detalle Reserva → Alquilar Equipamiento → Mis Pagos → Cancelar Reserva (autogestionada, `DELETE /reservations/:id`)
-- [ ] 6.7.4 Probar flujo completo Gerente: Login → Solicitudes Pendientes → Aprobar/Rechazar → Gestión Reservas → Check-in → Completar → Devolución Equipamiento → Registrar Pago
-- [ ] 6.7.5 Probar flujo completo Admin: Login → Gestión Usuarios → Suspender/Reactivar → CRUD Disciplinas → CRUD Canchas → CRUD Franjas → Auditoría → Reporte
-- [ ] 6.7.6 Validar que los badges de estado usan exclusivamente tokens semánticos (éxito, warning, error, info) en las 27 pantallas
-- [ ] 6.7.7 Validar theme switching: toggle manual + `prefers-color-scheme` + persistencia en `localStorage`
-- [ ] 6.7.8 Validar renderizado condicional por rol: menús y botones de acción coinciden con `RolesGuard` del backend
-- [ ] 6.7.9 Validar formularios: las validaciones del frontend (Zod) reflejan las restricciones de los DTOs del backend (`class-validator`)
-- [ ] 6.7.10 Prueba de responsive design en breakpoints: mobile (< 768px), tablet (768-1024px), desktop (> 1024px)
-- [ ] 6.7.11 Prueba de accesibilidad: contraste AA+ garantizado en ambos temas, navegación por teclado, atributos `aria-label` en botones de acción
-- [ ] 6.7.12 Auditoría final de cobertura: verificar que las 27 pantallas del inventario están implementadas y funcionales
+- [x] 6.7.1 Verificar que cada pantalla tiene su endpoint correspondiente funcionando (traceability matrix `pantallas.md` ↔ specs)
+- [x] 6.7.2 Probar flujo completo Visitante: Landing → Disciplinas → Detalle → Disponibilidad → Registro → Login
+- [x] 6.7.3 Probar flujo completo Socio: Login → Dashboard → Nueva Reserva (3 pasos) → Detalle Reserva → Alquilar Equipamiento → Mis Pagos → Cancelar Reserva (autogestionada, `DELETE /reservations/:id`)
+- [x] 6.7.4 Probar flujo completo Gerente: Login → Solicitudes Pendientes → Aprobar/Rechazar → Gestión Reservas → Check-in → Completar → Devolución Equipamiento → Registrar Pago
+- [x] 6.7.5 Probar flujo completo Admin: Login → Gestión Usuarios → Suspender/Reactivar → CRUD Disciplinas → CRUD Canchas → CRUD Franjas → Auditoría → Reporte
+- [x] 6.7.6 Validar que los badges de estado usan exclusivamente tokens semánticos (éxito, warning, error, info) en las 27 pantallas
+- [x] 6.7.7 Validar theme switching: toggle manual + `prefers-color-scheme` + persistencia en `localStorage`
+- [x] 6.7.8 Validar renderizado condicional por rol: menús y botones de acción coinciden con `RolesGuard` del backend
+- [x] 6.7.9 Validar formularios: las validaciones del frontend (Zod) reflejan las restricciones de los DTOs del backend (`class-validator`)
+- [x] 6.7.10 Prueba de responsive design en breakpoints: mobile (< 768px), tablet (768-1024px), desktop (> 1024px)
+- [x] 6.7.11 Prueba de accesibilidad: contraste AA+ garantizado en ambos temas, navegación por teclado, atributos `aria-label` en botones de acción
+- [x] 6.7.12 Auditoría final de cobertura: verificar que las 27 pantallas del inventario están implementadas y funcionales

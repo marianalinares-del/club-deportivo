@@ -163,9 +163,9 @@ export default function NewReservationPage() {
                 <span
                   className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold transition-colors ${
                     isDone
-                      ? "bg-primary text-white"
+                      ? "bg-primary text-surface"
                       : isActive
-                        ? "bg-primary text-white ring-2 ring-primary/30"
+                        ? "bg-primary text-surface ring-2 ring-primary/30"
                         : "border border-border bg-surface text-text-secondary"
                   }`}
                 >
@@ -405,7 +405,7 @@ export default function NewReservationPage() {
               type="button"
               onClick={() => setStep((prev) => (prev + 1) as Step)}
               disabled={!canGoNext()}
-              className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-hover disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-surface transition-colors hover:bg-primary-hover disabled:opacity-50"
             >
               Siguiente
               <IconChevronRight className="h-4 w-4" />
@@ -415,7 +415,7 @@ export default function NewReservationPage() {
               type="button"
               onClick={handleConfirm}
               disabled={!confirmed || mutation.isPending || !canCreate}
-              className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-hover disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-surface transition-colors hover:bg-primary-hover disabled:opacity-50"
             >
               <IconCheckCircle className="h-4 w-4" />
               {mutation.isPending ? "Creando…" : "Confirmar reserva"}

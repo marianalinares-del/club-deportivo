@@ -79,7 +79,7 @@ export default function MyReservationsPage() {
           </div>
           <Link
             href="/reservations/new"
-            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition-colors ${
+            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-surface transition-colors ${
               canCreate
                 ? "bg-primary hover:bg-primary-hover"
                 : "cursor-not-allowed bg-text-secondary opacity-50"
@@ -109,7 +109,7 @@ export default function MyReservationsPage() {
               onClick={() => setFilter(opt.value)}
               className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
                 filter === opt.value
-                  ? "bg-primary text-white"
+                  ? "bg-primary text-surface"
                   : "border border-border bg-surface text-text-secondary hover:bg-surface-2"
               }`}
             >

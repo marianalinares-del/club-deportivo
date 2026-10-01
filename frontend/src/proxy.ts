@@ -20,9 +20,9 @@ const PUBLIC_ROUTES = ["/", "/login", "/register", "/disciplines", "/availabilit
 
 /** Rutas que requieren rol específico (prefijo) */
 const ROLE_ROUTES: Record<string, string[]> = {
-  SOCIO: ["/profile", "/my-reservations", "/reservations", "/my-payments"],
-  GERENTE: ["/permission-requests", "/reservations", "/equipment-rentals", "/payments/new", "/notifications"],
-  ADMINISTRADOR: ["/admin"],
+  SOCIO: ["/profile", "/my-reservations", "/reservations", "/my-payments", "/equipment-rentals", "/notifications"],
+  GERENTE: ["/permission-requests", "/reservations", "/equipment-rentals", "/payments/new", "/notifications", "/profile", "/my-reservations", "/my-payments"],
+  ADMINISTRADOR: ["/admin", "/permission-requests", "/reservations", "/equipment-rentals", "/payments/new", "/notifications", "/profile", "/my-reservations", "/my-payments"],
 };
 
 export function proxy(request: NextRequest) {

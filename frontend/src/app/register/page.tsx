@@ -111,7 +111,7 @@ export default function RegisterPage() {
         </p>
 
         {serverError && (
-          <div className="mt-6 rounded-xl border border-error/40 bg-error/10 px-4 py-3 text-sm text-error">
+          <div role="alert" className="mt-6 rounded-xl border border-error/40 bg-error/10 px-4 py-3 text-sm text-error">
             {serverError}
           </div>
         )}
@@ -121,32 +121,38 @@ export default function RegisterPage() {
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="flex flex-col gap-1.5">
               <span className="text-sm font-medium text-text-primary">
-                Nombre <span className="text-error">*</span>
+                Nombre <span className="text-error" aria-hidden="true">*</span>
               </span>
               <input
                 type="text"
                 autoComplete="given-name"
+                aria-required="true"
+                aria-invalid={!!errors.nombre}
+                aria-describedby={errors.nombre ? "nombre-error" : undefined}
                 {...register("nombre")}
                 className="rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text-primary placeholder:text-text-secondary focus:border-primary focus:outline-none"
                 placeholder="Juan"
               />
               {errors.nombre && (
-                <span className="text-xs text-error">{errors.nombre.message}</span>
+                <span id="nombre-error" role="alert" className="text-xs text-error">{errors.nombre.message}</span>
               )}
             </label>
             <label className="flex flex-col gap-1.5">
               <span className="text-sm font-medium text-text-primary">
-                Apellido <span className="text-error">*</span>
+                Apellido <span className="text-error" aria-hidden="true">*</span>
               </span>
               <input
                 type="text"
                 autoComplete="family-name"
+                aria-required="true"
+                aria-invalid={!!errors.apellido}
+                aria-describedby={errors.apellido ? "apellido-error" : undefined}
                 {...register("apellido")}
                 className="rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text-primary placeholder:text-text-secondary focus:border-primary focus:outline-none"
                 placeholder="Pérez"
               />
               {errors.apellido && (
-                <span className="text-xs text-error">{errors.apellido.message}</span>
+                <span id="apellido-error" role="alert" className="text-xs text-error">{errors.apellido.message}</span>
               )}
             </label>
           </div>
@@ -155,18 +161,21 @@ export default function RegisterPage() {
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="flex flex-col gap-1.5">
               <span className="text-sm font-medium text-text-primary">
-                DNI <span className="text-error">*</span>
+                DNI <span className="text-error" aria-hidden="true">*</span>
               </span>
               <input
                 type="text"
                 inputMode="numeric"
                 autoComplete="off"
+                aria-required="true"
+                aria-invalid={!!errors.dni}
+                aria-describedby={errors.dni ? "dni-error" : undefined}
                 {...register("dni")}
                 className="rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text-primary placeholder:text-text-secondary focus:border-primary focus:outline-none"
                 placeholder="12345678"
               />
               {errors.dni && (
-                <span className="text-xs text-error">{errors.dni.message}</span>
+                <span id="dni-error" role="alert" className="text-xs text-error">{errors.dni.message}</span>
               )}
             </label>
             <label className="flex flex-col gap-1.5">
@@ -180,7 +189,7 @@ export default function RegisterPage() {
                 placeholder="20123456789"
               />
               {errors.cuil && (
-                <span className="text-xs text-error">{errors.cuil.message}</span>
+                <span id="cuil-error" role="alert" className="text-xs text-error">{errors.cuil.message}</span>
               )}
             </label>
           </div>
@@ -198,17 +207,20 @@ export default function RegisterPage() {
           {/* Email */}
           <label className="flex flex-col gap-1.5">
             <span className="text-sm font-medium text-text-primary">
-              Email <span className="text-error">*</span>
+              Email <span className="text-error" aria-hidden="true">*</span>
             </span>
             <input
               type="email"
               autoComplete="email"
+              aria-required="true"
+              aria-invalid={!!errors.email}
+              aria-describedby={errors.email ? "email-error" : undefined}
               {...register("email")}
               className="rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text-primary placeholder:text-text-secondary focus:border-primary focus:outline-none"
               placeholder="juan@email.com"
             />
             {errors.email && (
-              <span className="text-xs text-error">{errors.email.message}</span>
+              <span id="email-error" role="alert" className="text-xs text-error">{errors.email.message}</span>
             )}
           </label>
 
@@ -227,17 +239,20 @@ export default function RegisterPage() {
           {/* Contraseña */}
           <label className="flex flex-col gap-1.5">
             <span className="text-sm font-medium text-text-primary">
-              Contraseña <span className="text-error">*</span>
+              Contraseña <span className="text-error" aria-hidden="true">*</span>
             </span>
             <input
               type="password"
               autoComplete="new-password"
+              aria-required="true"
+              aria-invalid={!!errors.password}
+              aria-describedby={errors.password ? "password-error" : undefined}
               {...register("password")}
               className="rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text-primary placeholder:text-text-secondary focus:border-primary focus:outline-none"
               placeholder="Mínimo 8 caracteres"
             />
             {errors.password && (
-              <span className="text-xs text-error">{errors.password.message}</span>
+              <span id="password-error" role="alert" className="text-xs text-error">{errors.password.message}</span>
             )}
           </label>
 

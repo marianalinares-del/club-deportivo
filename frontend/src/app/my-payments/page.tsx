@@ -88,7 +88,7 @@ export default function MyPaymentsPage() {
               onClick={() => setFilter(opt.value)}
               className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
                 filter === opt.value
-                  ? "bg-primary text-white"
+                  ? "bg-primary text-surface"
                   : "border border-border bg-surface text-text-secondary hover:bg-surface-2"
               }`}
             >

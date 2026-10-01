@@ -39,6 +39,7 @@ export function Navbar() {
               <Link
                 key={item.href}
                 href={item.href}
+                aria-current={active ? "page" : undefined}
                 className={cn(
                   "rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                   active
@@ -120,6 +121,7 @@ export function Navbar() {
                   <Link
                     href={item.href}
                     onClick={() => setOpen(false)}
+                    aria-current={active ? "page" : undefined}
                     className={cn(
                       "block rounded-lg px-3 py-2 text-sm font-medium",
                       active

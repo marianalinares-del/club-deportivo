@@ -259,7 +259,7 @@ function CourtModal({
   const [idDisciplina, setIdDisciplina] = useState(editing?.id_disciplina || "");
   const [superficie, setSuperficie] = useState(editing?.superficie || "");
   const [precioBase, setPrecioBase] = useState(editing?.precio_base?.toString() || "");
-  const [estado, setEstado] = useState<CourtStatus>(editing?.estado || "DISPONIBLE");
+  const [estado, setEstado] = useState<CourtStatus>((editing?.estado as CourtStatus) || "ACTIVO");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

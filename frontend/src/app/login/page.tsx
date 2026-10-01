@@ -38,13 +38,18 @@ export default function LoginPage() {
     mutationFn: (data: LoginFormData) =>
       api.post<AuthResponse>("/auth/login", data),
     onSuccess: (response) => {
-      login(response.token, {
-        id: response.usuario.id,
+      const token = response.token ?? response.access_token;
+      if (!token) {
+        setServerError("Error: no se recibió token de autenticación.");
+        return;
+      }
+      login(token, {
+        id: response.usuario.id ?? response.usuario.id_usuario ?? "",
         email: response.usuario.email,
         rol: response.usuario.rol,
         estado: response.usuario.estado,
-        nombre: response.usuario.persona?.nombre,
-        apellido: response.usuario.persona?.apellido,
+        nombre: response.usuario.persona?.nombre ?? response.usuario.nombre,
+        apellido: response.usuario.persona?.apellido ?? response.usuario.apellido,
       });
       const redirect = searchParams.get("redirect");
       router.push(redirect || getDashboardPath(response.usuario.rol));
@@ -80,7 +85,7 @@ export default function LoginPage() {
         </p>
 
         {serverError && (
-          <div className="mt-6 rounded-xl border border-error/40 bg-error/10 px-4 py-3 text-sm text-error">
+          <div role="alert" className="mt-6 rounded-xl border border-error/40 bg-error/10 px-4 py-3 text-sm text-error">
             {serverError}
           </div>
         )}
@@ -91,12 +96,15 @@ export default function LoginPage() {
             <input
               type="email"
               autoComplete="email"
+              aria-required="true"
+              aria-invalid={!!errors.email}
+              aria-describedby={errors.email ? "email-error" : undefined}
               {...register("email")}
               className="rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text-primary placeholder:text-text-secondary focus:border-primary focus:outline-none"
               placeholder="juan@email.com"
             />
             {errors.email && (
-              <span className="text-xs text-error">{errors.email.message}</span>
+              <span id="email-error" role="alert" className="text-xs text-error">{errors.email.message}</span>
             )}
           </label>
 
@@ -105,12 +113,15 @@ export default function LoginPage() {
             <input
               type="password"
               autoComplete="current-password"
+              aria-required="true"
+              aria-invalid={!!errors.password}
+              aria-describedby={errors.password ? "password-error" : undefined}
               {...register("password")}
               className="rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text-primary placeholder:text-text-secondary focus:border-primary focus:outline-none"
               placeholder="Tu contraseña"
             />
             {errors.password && (
-              <span className="text-xs text-error">{errors.password.message}</span>
+              <span id="password-error" role="alert" className="text-xs text-error">{errors.password.message}</span>
             )}
           </label>
 
