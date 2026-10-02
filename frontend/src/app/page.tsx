@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { PublicLayout } from "@/components";
 import { api } from "@/lib/http-client";
+import { isVisibleEntity } from "@/lib/api-mappers";
 import type { Disciplina } from "@/lib/types";
 import { IconTrophy } from "@/components/icons";
 
@@ -57,7 +58,7 @@ export default function Home() {
           </h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {disciplinas
-              .filter((d) => d.estado === "ACTIVO")
+              .filter(isVisibleEntity)
               .map((disciplina) => (
                 <Link
                   key={disciplina.id}
