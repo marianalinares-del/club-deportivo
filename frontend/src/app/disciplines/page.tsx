@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { PublicLayout } from "@/components";
 import { api } from "@/lib/http-client";
+import { isVisibleEntity } from "@/lib/api-mappers";
 import type { Disciplina } from "@/lib/types";
 import { IconSearch, IconTrophy } from "@/components/icons";
 
@@ -16,7 +17,7 @@ export default function DisciplinesPage() {
     queryFn: () => api.get<Disciplina[]>("/disciplines"),
   });
 
-  const activas = (disciplinas ?? []).filter((d) => d.estado === "ACTIVO");
+  const activas = (disciplinas ?? []).filter(isVisibleEntity);
   const filtradas = search.trim()
     ? activas.filter((d) =>
         d.nombre.toLowerCase().includes(search.trim().toLowerCase())

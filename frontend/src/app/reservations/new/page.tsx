@@ -6,7 +6,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { AuthenticatedLayout, StatusBadge } from "@/components";
 import { useAuth } from "@/lib/auth-provider";
 import { api } from "@/lib/http-client";
-import { normalizeDisciplina, normalizeCancha, normalizeSlot } from "@/lib/api-mappers";
+import { normalizeDisciplina, normalizeCancha, normalizeSlot, isVisibleEntity } from "@/lib/api-mappers";
 import { formatDate, formatCurrency, todayISODate } from "@/lib/format";
 import { countActiveReservations, MAX_ACTIVE_RESERVATIONS } from "@/lib/reservation-rules";
 import type { Disciplina, Cancha, TimeSlotAvailability, Reserva, CreateReservaRequest } from "@/lib/types";
@@ -49,7 +49,7 @@ export default function NewReservationPage() {
     queryFn: () => api.get<unknown[]>("/disciplines").then((list) => list.map(normalizeDisciplina)),
   });
 
-  const activas = (disciplinas ?? []).filter((d) => d.estado === "ACTIVO");
+  const activas = (disciplinas ?? []).filter(isVisibleEntity);
   const selectedDiscipline = activas.find((d) => d.id === disciplineId);
 
   const { data: canchas } = useQuery<Cancha[]>({
