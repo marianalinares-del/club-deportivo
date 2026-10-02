@@ -36,7 +36,7 @@ Plataformas sugeridas: Render, Railway o Fly.io (con Node 20+).
 
 | Clave | Notas |
 |---|---|
-| `DATABASE_URL` | Pooler de Supabase en IPv4: `postgresql://postgres.[REF]:[PASS]@aws-0-[REGION].pooler.supabase.com:6543/postgres?pgbouncer=true` (el host directo `db.[REF].supabase.co:5432` no resuelve en IPv4) |
+| `DATABASE_URL` | Pooler de Supabase en IPv4. Para despliegues persistentes usar el **session pooler (puerto 5432)**: `postgresql://postgres.[REF]:[PASS]@aws-0-[REGION].pooler.supabase.com:5432/postgres` (el host directo `db.[REF].supabase.co:5432` no resuelve en IPv4). El transaction pooler (`:6543/postgres?pgbouncer=true`) se reserves para conexiones cortas: con el backend como proceso persistente sporadicamente devolvió `P1001 Can't reach database server` |
 | `JWT_SECRET` | Mismo valor que en local |
 | `JWT_EXPIRATION` | Opcional, ej. `24h` |
 | `PORT` | Lo inyecta la plataforma; el backend escucha en `0.0.0.0` |
@@ -45,8 +45,10 @@ Plataformas sugeridas: Render, Railway o Fly.io (con Node 20+).
 
 > `prisma generate` es obligatorio antes de compilar (el cliente generado no viene en el repo): por eso el build command del blueprint lo corre explícitamente.
 
-Build command: `pnpm install --frozen-lockfile && pnpm --filter club-deportivo-backend run prisma:generate && pnpm --filter club-deportivo-backend run build`.
+Build command: `pnpm install --frozen-lockfile --prod=false && pnpm --filter club-deportivo-backend run prisma:generate && pnpm --filter club-deportivo-backend run build`.
 Start command: `node backend/dist/main.js`.
+
+> `--prod=false` es necesario si la plataforma define `NODE_ENV=production`: sin él, pnpm omite las devDependencies (nest CLI, Prisma CLI, TypeScript) y no hay forma de compilar.
 
 **Health check:** `GET /api/v1/health` (sin autenticación) devuelve `{ status: 'ok' }` y sirve como health check de la plataforma y para confirmar que el deploy está vivo.
 
@@ -60,3 +62,11 @@ Start command: `node backend/dist/main.js`.
 ## 4. Checklist cuando el frontend carga pero no hay datos
 
 Casi siempre es CORS: el navegador bloquea si el dominio del frontend no está en `CORS_ORIGINS` del backend. Verificar en la consola del navegador (*blocked by CORS policy*) y reiniciar el backend tras cambiar la variable.
+
+Si el navegador los muestra pero con caracteres raros (`B�squetbol`, `F�tbol`), eso **no es el deploy**: son bytes corruptos (carácter Unicode `U+FFFD`) guardados en la base al cargar los datos. Un `console.log` en la terminal puede falsear el diagnóstico según la codificación de la consola; hay que verificar los bytes:
+
+```sql
+SELECT nombre, encode(convert_to(nombre, 'UTF8'), 'hex') FROM "Disciplina";
+```
+
+`efbfbd` dentro del hex significa que el dato entró roto y hay que corregirlo con un `UPDATE`.
