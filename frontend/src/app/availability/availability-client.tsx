@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { PublicLayout, TimeSlotGrid } from "@/components";
 import { api } from "@/lib/http-client";
-import { isVisibleEntity } from "@/lib/api-mappers";
+import { isVisibleEntity, normalizeCancha, normalizeDisciplina } from "@/lib/api-mappers";
 import { formatDate } from "@/lib/format";
 import type { Disciplina, Cancha, TimeSlotAvailability } from "@/lib/types";
 
@@ -25,7 +25,10 @@ export default function AvailabilityClient() {
   // Disciplinas
   const { data: disciplinas } = useQuery<Disciplina[]>({
     queryKey: ["disciplines"],
-    queryFn: () => api.get<Disciplina[]>("/disciplines"),
+    queryFn: () =>
+      api.get<unknown[]>("/disciplines").then((list) =>
+        list.map(normalizeDisciplina)
+      ),
   });
 
   const activas = (disciplinas ?? []).filter(isVisibleEntity);
@@ -34,9 +37,11 @@ export default function AvailabilityClient() {
   const { data: canchas } = useQuery<Cancha[]>({
     queryKey: ["courts", disciplineId],
     queryFn: () =>
-      api.get<Cancha[]>("/courts", {
-        params: { discipline_id: disciplineId },
-      }),
+      api
+        .get<unknown[]>("/courts", {
+          params: { discipline_id: disciplineId },
+        })
+        .then((list) => list.map(normalizeCancha)),
     enabled: Boolean(disciplineId),
   });
 

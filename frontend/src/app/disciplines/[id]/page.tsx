@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { PublicLayout, StatusBadge } from "@/components";
 import { api } from "@/lib/http-client";
+import { normalizeDisciplina } from "@/lib/api-mappers";
 import { formatCurrency } from "@/lib/format";
 import type { Disciplina } from "@/lib/types";
 import { IconChevronLeft, IconLandmark } from "@/components/icons";
@@ -14,7 +15,8 @@ export default function DisciplineDetailPage() {
 
   const { data: disciplina, isLoading } = useQuery<Disciplina>({
     queryKey: ["disciplines", id],
-    queryFn: () => api.get<Disciplina>(`/disciplines/${id}`),
+    queryFn: () =>
+      api.get<unknown>(`/disciplines/${id}`).then(normalizeDisciplina),
     enabled: Boolean(id),
   });
 

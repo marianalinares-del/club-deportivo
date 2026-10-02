@@ -23,7 +23,7 @@ export type PermissionRequestStatus = "PENDIENTE" | "APROBADA" | "RECHAZADA";
 
 export type PermissionRequestOrigin = "AUTOREGISTRO" | "GESTIONADA_POR_PERSONAL";
 
-export type CourtStatus = "ACTIVO" | "INACTIVO" | "MANTENIMIENTO";
+export type CourtStatus = "DISPONIBLE" | "ACTIVO" | "INACTIVO" | "MANTENIMIENTO";
 
 export type SurfaceType = "cesped_natural" | "cesped_sintetico" | "cemento" | "parquet" | "otro";
 

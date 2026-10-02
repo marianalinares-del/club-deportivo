@@ -54,6 +54,15 @@ export function isVisibleEntity(entity: { estado?: string }): boolean {
   return !entity.estado || entity.estado === "ACTIVO" || entity.estado === "DISPONIBLE";
 }
 
+export function courtCount(disciplina: {
+  _count?: { canchas?: number } | null;
+  canchas?: unknown[] | null;
+}): number {
+  const counted = disciplina._count?.canchas;
+  if (typeof counted === "number") return counted;
+  return Array.isArray(disciplina.canchas) ? disciplina.canchas.length : 0;
+}
+
 export function normalizeAuthResponse(raw: AuthResponse | Raw): {
   token: string;
   id: string;

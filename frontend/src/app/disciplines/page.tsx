@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { PublicLayout } from "@/components";
 import { api } from "@/lib/http-client";
-import { isVisibleEntity } from "@/lib/api-mappers";
+import { courtCount, isVisibleEntity, normalizeDisciplina } from "@/lib/api-mappers";
 import type { Disciplina } from "@/lib/types";
 import { IconSearch, IconTrophy } from "@/components/icons";
 
@@ -14,7 +14,10 @@ export default function DisciplinesPage() {
 
   const { data: disciplinas, isLoading } = useQuery<Disciplina[]>({
     queryKey: ["disciplines"],
-    queryFn: () => api.get<Disciplina[]>("/disciplines"),
+    queryFn: () =>
+      api
+        .get<unknown[]>("/disciplines")
+        .then((list) => list.map(normalizeDisciplina)),
   });
 
   const activas = (disciplinas ?? []).filter(isVisibleEntity);
@@ -74,36 +77,38 @@ export default function DisciplinesPage() {
           </p>
         ) : (
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {filtradas.map((disciplina) => (
-              <Link
-                key={disciplina.id}
-                href={`/disciplines/${disciplina.id}`}
-                className="group rounded-2xl border border-border bg-surface p-5 transition-colors hover:border-primary/50 hover:bg-surface-2"
-              >
-                <div className="flex items-start gap-3">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                    <IconTrophy className="h-5 w-5" />
-                  </span>
-                  <div className="min-w-0">
-                    <h2 className="font-semibold text-text-primary group-hover:text-primary">
-                      {disciplina.nombre}
-                    </h2>
-                    {disciplina.descripcion && (
-                      <p className="mt-1 text-sm text-text-secondary line-clamp-2">
-                        {disciplina.descripcion}
-                      </p>
-                    )}
-                    {disciplina.canchas && (
+            {filtradas.map((disciplina) => {
+              const totalCanchas = courtCount(disciplina);
+              return (
+                <Link
+                  key={disciplina.id}
+                  href={`/disciplines/${disciplina.id}`}
+                  className="group rounded-2xl border border-border bg-surface p-5 transition-colors hover:border-primary/50 hover:bg-surface-2"
+                >
+                  <div className="flex items-start gap-3">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                      <IconTrophy className="h-5 w-5" />
+                    </span>
+                    <div className="min-w-0">
+                      <h2 className="font-semibold text-text-primary group-hover:text-primary">
+                        {disciplina.nombre}
+                      </h2>
+                      {disciplina.descripcion && (
+                        <p className="mt-1 text-sm text-text-secondary line-clamp-2">
+                          {disciplina.descripcion}
+                        </p>
+                      )}
                       <p className="mt-2 text-xs font-medium text-text-secondary">
-                        {disciplina.canchas.length}{" "}
-                        {disciplina.canchas.length === 1 ? "cancha" : "canchas"} disponible
-                        {disciplina.canchas.length === 1 ? "" : "s"}
+                        {totalCanchas}{" "}
+                        {totalCanchas === 1
+                          ? "cancha disponible"
+                          : "canchas disponibles"}
                       </p>
-                    )}
+                    </div>
                   </div>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              );
+            })}
           </div>
         )}
       </div>
