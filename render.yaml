@@ -23,7 +23,9 @@ services:
         generateValue: true
       - key: JWT_EXPIRATION
         value: 24h
-      # Pooler de Supabase en IPv4 (el host directo db.[REF] no resuelve en IPv4)
+      # Pooler de Supabase en IPv4: usar el SESSION pooler (puerto 5432) porque
+      # el backend es un proceso Node persistente. El host directo db.[REF]:5432 no
+      # resuelve en IPv4 y el transaction pooler (6543) dio P1001 intermitente.
       - key: DATABASE_URL
         sync: false
       # Dominio del frontend en Vercel

@@ -28,6 +28,9 @@
 - [x] 5.1 Confirmar que Prisma conecta al pooler IPv4 de Supabase y que `GET /api/v1/disciplines` devuelve datos (200)
 - [x] 5.2 Confirmar CORS: `Origin: https://club-deportivo-phi.vercel.app` → `Access-Control-Allow-Origin` presente; origen desconocido → header ausente
 - [x] 5.3 Simular entorno de deploy (`NODE_ENV=production`, `PORT` por env, sin depender del `.env`): el servicio arranca en el puerto inyectado y responde health + datos
+- [x] 5.4 Detectar y corregir los textos corruptos en la BD (`U+FFFD` en lugar de `á`/`é`/`ó`/`ú`): 8 valores en `Disciplina.nombre`, `Disciplina.descripcion`, `Cancha.nombre` y `Cancha.superficie`, verificados por hex (`c3a1`/`c3a9`/`c3b3`/`c3ba`, sin `efbfbd`)
+- [x] 5.5 Comparar los poolers de Supabase para el deploy y documentar el **session pooler (`:5432`)** como recomendado: el transaction pooler (`:6543`) devolvió `P1001` intermitente en pruebas locales y el session pooler además soporta prepared statements
+- [x] 5.6 Probar el flujo completo en local (backend en `:3001` + frontend en `:3000`): páginas 200, CORS correcto y datos con acentos ya legibles
 
 ## 6. Pendiente — acciones del equipo (requieren cuentas)
 
