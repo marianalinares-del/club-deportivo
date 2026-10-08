@@ -21,6 +21,7 @@ import {
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { SuspendedUserGuard } from '../auth/suspended-user.guard';
+import { ActiveUserGuard } from '../auth/active-user.guard';
 
 @Controller('api/v1')
 export class ReservasController {
@@ -50,7 +51,7 @@ export class ReservasController {
     return this.reservasService.getReserva(id);
   }
 
-  @UseGuards(AuthGuard('jwt'), SuspendedUserGuard)
+  @UseGuards(AuthGuard('jwt'), ActiveUserGuard)
   @Post('reservations')
   async crearReserva(@Body() dto: CreateReservaDto, @Request() req) {
     return this.reservasService.crearReserva(dto, req.user?.id_usuario);
@@ -85,7 +86,7 @@ export class ReservasController {
     return this.reservasService.listarAlquileres(reservationId);
   }
 
-  @UseGuards(AuthGuard('jwt'), SuspendedUserGuard)
+  @UseGuards(AuthGuard('jwt'), ActiveUserGuard)
   @Post('equipment-rentals')
   async crearAlquiler(@Body() dto: CreateAlquilerEquipamientoDto) {
     return this.reservasService.crearAlquiler(dto);

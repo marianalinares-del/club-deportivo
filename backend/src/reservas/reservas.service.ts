@@ -131,31 +131,31 @@ export class ReservasService {
       throw new ConflictException('La franja ya está reservada para esta fecha');
     }
 
-    // Validar usuario activo
+    // Validar usuario activo (requerido para toda reserva)
     const usuario = await this.prisma.usuario.findUnique({
       where: { id_usuario: dto.id_persona },
     });
 
-    if (usuario && usuario.estado === 'SUSPENDIDO') {
-      throw new BadRequestException(
-        'Usuario suspendido: no puede realizar reservas',
-      );
+    if (!usuario) {
+      throw new ForbiddenException('Solo usuarios registrados y activos pueden reservar');
+    }
+
+    if (usuario.estado !== 'ACTIVO') {
+      throw new ForbiddenException('El usuario debe estar ACTIVO para reservar');
     }
 
     // Validar máximo 2 reservas confirmadas
-    if (usuario && usuario.estado === 'ACTIVO') {
-      const count = await this.prisma.reserva.count({
-        where: {
-          id_persona: dto.id_persona,
-          estado: 'CONFIRMADA',
-        },
-      });
+    const count = await this.prisma.reserva.count({
+      where: {
+        id_persona: dto.id_persona,
+        estado: 'CONFIRMADA',
+      },
+    });
 
-      if (count >= 2) {
-        throw new BadRequestException(
-          'El usuario ya posee el máximo de 2 reservas confirmadas',
-        );
-      }
+    if (count >= 2) {
+      throw new BadRequestException(
+        'El usuario ya posee el máximo de 2 reservas confirmadas',
+      );
     }
 
     // Crear reserva

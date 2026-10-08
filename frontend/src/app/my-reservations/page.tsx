@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AuthenticatedLayout, ReservationCard, StatusBadge } from "@/components";
-import { useAuth } from "@/lib/auth-provider";
+import { useAuth, useRequireActiveUser } from "@/lib/auth-provider";
 import { api } from "@/lib/http-client";
 import { normalizeReserva } from "@/lib/api-mappers";
 import { canSocioCancel, countActiveReservations, MAX_ACTIVE_RESERVATIONS } from "@/lib/reservation-rules";
@@ -21,8 +21,15 @@ const FILTER_OPTIONS: { value: FilterStatus; label: string }[] = [
   { value: "CANCELADA", label: "Canceladas" },
 ];
 
-export default function MyReservationsPage() {
+function MyReservationsContent() {
   const { user } = useAuth();
+  const activeUser = useRequireActiveUser();
+  
+  // Durante build/prerender, activeUser será null
+  if (activeUser === null) {
+    return null;
+  }
+  
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<FilterStatus>("ALL");
 
@@ -160,4 +167,66 @@ export default function MyReservationsPage() {
       </div>
     </AuthenticatedLayout>
   );
+}
+
+export default function MyReservationsPage() {
+  try {
+    return <MyReservationsContent />;
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.message === "NOT_AUTHENTICATED") {
+        return (
+          <AuthenticatedLayout>
+            <div className="py-8 sm:py-12 text-center">
+              <IconAlertTriangle className="h-12 w-12 mx-auto text-warning" />
+              <h2 className="mt-4 text-xl font-semibold text-text-primary">
+                Debes iniciar sesión
+              </h2>
+              <p className="mt-2 text-text-secondary">
+                Para ver tus reservas, necesitas tener una cuenta activa.
+              </p>
+              <div className="mt-6 flex justify-center gap-3">
+                <a
+                  href="/login"
+                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-hover"
+                >
+                  Iniciar sesión
+                </a>
+                <a
+                  href="/register"
+                  className="inline-flex items-center gap-2 rounded-xl border border-border bg-surface px-4 py-2.5 text-sm font-semibold text-text-primary transition-colors hover:bg-surface-2"
+                >
+                  Registrarse
+                </a>
+              </div>
+            </div>
+          </AuthenticatedLayout>
+        );
+      }
+      if (error.message === "USER_NOT_ACTIVE") {
+        return (
+          <AuthenticatedLayout>
+            <div className="py-8 sm:py-12 text-center">
+              <IconAlertTriangle className="h-12 w-12 mx-auto text-warning" />
+              <h2 className="mt-4 text-xl font-semibold text-text-primary">
+                Cuenta no activa
+              </h2>
+              <p className="mt-2 text-text-secondary">
+                Tu cuenta no está activa. Contactá a gerencia para activarla.
+              </p>
+              <div className="mt-6 flex justify-center gap-3">
+                <a
+                  href="/profile"
+                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-hover"
+                >
+                  Ver mi perfil
+                </a>
+              </div>
+            </div>
+          </AuthenticatedLayout>
+        );
+      }
+    }
+    throw error;
+  }
 }
