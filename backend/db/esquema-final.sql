@@ -975,7 +975,7 @@ BEGIN
 
 
     -- ---------------------------------------------------------------
-    -- Usuario
+    -- Usuario - Solo usuarios ACTIVOS pueden reservar
     -- ---------------------------------------------------------------
 
     SELECT estado
@@ -984,25 +984,23 @@ BEGIN
     WHERE id_usuario = NEW.id_persona;
 
 
-    IF v_estado_usuario IS NOT NULL
-       AND v_estado_usuario <> 'ACTIVO'
-       AND NEW.estado = 'CONFIRMADA'
+    IF v_estado_usuario IS NULL
+       OR v_estado_usuario <> 'ACTIVO'
     THEN
 
         RAISE EXCEPTION
-            'El usuario debe estar ACTIVO para reservar';
+            'Solo usuarios registrados y activos pueden reservar';
 
     END IF;
 
 
     -- ---------------------------------------------------------------
-    -- Máximo 2 reservas confirmadas por socio
+    -- Máximo 2 reservas confirmadas por usuario activo
     --
     -- Se utiliza advisory lock para evitar race conditions.
     -- ---------------------------------------------------------------
 
-    IF v_estado_usuario = 'ACTIVO'
-       AND NEW.estado = 'CONFIRMADA'
+    IF NEW.estado = 'CONFIRMADA'
     THEN
 
         PERFORM pg_advisory_xact_lock(
