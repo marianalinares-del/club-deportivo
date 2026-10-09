@@ -1,5 +1,6 @@
 import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { Inject } from '@nestjs/common';
+import { IUserStatusProvider } from '../common/repositories/interfaces';
 
 /**
  * Guard que verifica que el usuario autenticado tiene estado ACTIVO.
@@ -8,7 +9,9 @@ import { PrismaService } from '../prisma/prisma.service';
  */
 @Injectable()
 export class ActiveUserGuard implements CanActivate {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    @Inject('IUserStatusProvider') private userStatusProvider: IUserStatusProvider,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
@@ -18,12 +21,9 @@ export class ActiveUserGuard implements CanActivate {
       throw new ForbiddenException('Se requiere autenticación');
     }
 
-    const usuario = await this.prisma.usuario.findUnique({
-      where: { id_usuario: userId },
-      select: { estado: true, rol: true },
-    });
+    const estado = await this.userStatusProvider.getEstado(userId);
 
-    if (!usuario || usuario.estado !== 'ACTIVO') {
+    if (!estado || estado !== 'ACTIVO') {
       throw new ForbiddenException('El usuario debe estar ACTIVO para realizar esta operación');
     }
 

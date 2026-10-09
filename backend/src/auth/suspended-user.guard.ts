@@ -1,12 +1,15 @@
 import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { Inject } from '@nestjs/common';
+import { IUserStatusProvider } from '../common/repositories/interfaces';
 
 /**
  * Guard que bloquea a usuarios suspendidos de realizar operaciones.
  */
 @Injectable()
 export class SuspendedUserGuard implements CanActivate {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    @Inject('IUserStatusProvider') private userStatusProvider: IUserStatusProvider,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
@@ -16,12 +19,9 @@ export class SuspendedUserGuard implements CanActivate {
       return true; // Sin usuario autenticado, otros guards se encargarán
     }
 
-    const usuario = await this.prisma.usuario.findUnique({
-      where: { id_usuario: userId },
-      select: { estado: true },
-    });
+    const estado = await this.userStatusProvider.getEstado(userId);
 
-    if (usuario?.estado === 'SUSPENDIDO') {
+    if (estado === 'SUSPENDIDO') {
       throw new UnauthorizedException(
         'Usuario suspendido: no puede realizar reservas ni alquilar equipamiento',
       );

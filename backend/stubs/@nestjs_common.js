@@ -28,6 +28,8 @@ const UsePipes = (...pipes) => createDecorator();
 const UseInterceptors = (...interceptors) => createDecorator();
 const UseFilters = (...filters) => createDecorator();
 const SetMetadata = (key, value) => createDecorator();
+const Inject = (token) => createDecorator();
+const Optional = () => createDecorator();
 
 // Enums
 const HttpStatus = {
@@ -102,6 +104,8 @@ module.exports = {
   UseInterceptors,
   UseFilters,
   SetMetadata,
+  Inject,
+  Optional,
   HttpException,
   BadRequestException,
   UnauthorizedException,
